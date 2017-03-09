@@ -15,7 +15,7 @@ import Control.Exception
 }
 
 -- Entry point
-%name top
+%name elsa
 
 -- Lexer structure
 %tokentype { Token }
@@ -27,45 +27,45 @@ import Control.Exception
 -- Token Names
 %token
     let   { LET _    }
-    true  { TRUE _   }
-    false { FALSE _  }
-    in    { IN _     }
-    if    { IF _     }
-    then  { THEN _   }
-    else  { ELSE _   }
-    TNUM  { NUM _ $$ }
+    eval  { EVAL _   }
     ID    { ID _ $$  }
     '\\'  { LAM _    }
     '->'  { ARROW _  }
-    '='   { EQB _    }
-    '+'   { PLUS _   }
-    '-'   { MINUS _  }
-    '*'   { MUL _    }
-    '&&'  { AND _    }
-    '||'  { OR  _    }
-    '=='  { EQL _    }
-    '/='  { NEQ _    }
-    '<'   { LESS _   }
-    '<='  { LEQ _    }
+    '=a>' { EQA _    }
+    '=b>' { EQA _    }
+    '=d>' { EQA _    }
     ':'   { COLON _  }
     '('   { LPAREN _ }
     ')'   { RPAREN _ }
-    '['   { LBRAC _  }
-    ']'   { RBRAC _  }
-    ','   { COMMA _  }
-
 
 -- Operators
-%right in
-%nonassoc '=' '==' '/=' '<' '<=' if then else
-%right ':' '->'
-%left '||' '&&'
-%left '+' '-'
-%left '*'
+%nonassoc ':'
+%right '->'
 %%
 
-Top  : ID '=' Expr                 { $3 }
-     | Expr                        { $1 }
+Elsa  : Defns Evals                 { Elsa $1 $2 }
+
+Defns :                             { []         }
+      | Defn Defns                  { $1 : $3    }
+
+Defn  : let Bind '=' Expr           { ($2, $4)   }
+
+Evals :                             { []         }
+      | Eval Evals                  { $1 : $3    }
+
+Eval  : eval Bind ':' Expr Steps    { Eval $2 $4 $5 }
+
+Steps :                             { []         }
+      | Step Steps                  { $1 : $3    }
+
+Step  : Eqn Expr                    { Step $1 $2 }
+
+Eqn   : '=a>'                       { AlphEq (posnSpan $1) }
+      | '=b>'                       { BetaEq (posnSpan $1) }
+      | '=d>'                       { DefnEq (posnSpan $1) }
+
+Top   : LET ID '=' Expr Defns       { $3 }
+      | Expr                        { $1 }
 
 Expr : Expr ':' Expr                { EBin Cons  $1 $3 }
      | Expr '&&' Expr               { EBin And   $1 $3 }
