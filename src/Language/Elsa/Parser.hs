@@ -1,17 +1,18 @@
-module Language.FDL.Parser ( parse, parseFile ) where
+module Language.Elsa.Parser ( parse, parseFile ) where
 
 import           Control.Monad (void)
 import           Text.Megaparsec hiding (parse)
 import           Text.Megaparsec.Expr
-import           Text.Megaparsec.String -- input stream is of type ‘String’
+import           Text.Megaparsec.String
 import qualified Text.Megaparsec.Lexer as L
 import qualified Data.List as L
-import           Language.FDL.Types
+import           Language.Elsa.Types
+import           Language.Elsa.UX
 
 --------------------------------------------------------------------------------
-parse :: FilePath -> Text -> Bare
+parse :: FilePath -> Text -> SElsa
 --------------------------------------------------------------------------------
-parse = parseWith expr
+parse = parseWith elsa
 
 parseWith  :: Parser a -> FilePath -> Text -> a
 parseWith p f s = case runParser (whole p) f s of
@@ -25,7 +26,7 @@ instance PPrint ParseError where
   pprint = show
 
 --------------------------------------------------------------------------------
-parseFile :: FilePath -> IO Bare
+parseFile :: FilePath -> IO SElsa
 --------------------------------------------------------------------------------
 parseFile f = parse f <$> readFile f
 
@@ -38,26 +39,30 @@ whole p = sc *> p <* eof
 -- RJ: rename me "space consumer"
 sc :: Parser ()
 sc = L.space (void spaceChar) lineCmnt blockCmnt
-  where lineCmnt  = L.skipLineComment "//"
-        blockCmnt = L.skipBlockComment "/*" "*/"
+  where
+    lineCmnt  = L.skipLineComment  "--"
+    blockCmnt = L.skipBlockComment "{-" "-}"
 
 -- | `symbol s` parses just the string s (and trailing whitespace)
 symbol :: String -> Parser String
 symbol = L.symbol sc
 
-comma :: Parser String
-comma = symbol ","
+arrow :: Parser String
+arrow = symbol "->"
 
 colon :: Parser String
 colon = symbol ":"
 
+equal :: Parser String
+equal = symbol "="
+
+lam :: Parser String
+lam = symbol "\\"
+
+
 -- | 'parens' parses something between parenthesis.
 parens :: Parser a -> Parser a
 parens = betweenS "(" ")"
-
--- | 'brackets' parses something between parenthesis.
-brackets :: Parser a -> Parser a
-brackets = betweenS "[" "]"
 
 betweenS :: String -> String -> Parser a -> Parser a
 betweenS l r = between (symbol l) (symbol r)
@@ -74,16 +79,9 @@ integer = lexeme L.integer
 rWord   :: String -> Parser SourceSpan
 rWord w = snd <$> (withSpan (string w) <* notFollowedBy alphaNumChar <* sc)
 
-
 -- | list of reserved words
 keywords :: [Text]
-keywords =
-  [ "if"      , "else"
-  , "true"    , "false"
-  , "let"     , "in"
-  , "add1"    , "sub1"  , "isNum"   , "isBool",   "print"
-  , "def"     , "lambda"
-  ]
+keywords = [ "let"  , "eval" ]
 
 -- | `identifier` parses identifiers: lower-case alphabets followed by alphas or digits
 identifier :: Parser (String, SourceSpan)
@@ -95,12 +93,8 @@ identifier = lexeme (p >>= check)
                 else return x
 
 -- | `binder` parses BareBind, used for let-binds and function parameters.
-binder :: Parser BareBind
+binder :: Parser SBind
 binder = uncurry Bind <$> identifier
-
-
-stretch :: (Monoid a) => [Expr a] -> a
-stretch = mconcat . map getLabel
 
 withSpan' :: Parser (SourceSpan -> a) -> Parser a
 withSpan' p = do
@@ -116,123 +110,59 @@ withSpan p = do
   p2 <- getPosition
   return (x, SS p1 p2)
 
-expr :: Parser Bare
-expr = makeExprParser expr0 binops
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
-expr0 :: Parser Bare
-expr0 =  try primExpr
-     <|> try letExpr
-     <|> try ifExpr
-     <|> try lamExpr
-     <|> try defExpr
-     <|> try getExpr
+elsa :: Parser SElsa
+elsa = Elsa <$> many defn <*> many eval
+
+defn :: Parser (SBind, SExpr)
+defn = do
+  rWord "let"
+  b <- binder <* equal
+  e <- expr
+  return (b, e)
+
+eval :: Parser SEval
+eval = do
+  rWord "eval"
+  name  <- binder
+  colon
+  root  <- expr
+  steps <- many step
+  return $ Eval name root steps
+
+step :: Parser SStep
+step = Step <$> eqn <*> expr
+
+eqn :: Parser SEqn
+eqn =  try (withSpan' (symbol "=a>" >> return AlphEq))
+   <|> try (withSpan' (symbol "=b>" >> return BetaEq))
+   <|> try (withSpan' (symbol "=d>" >> return DefnEq))
+
+expr :: Parser SExpr
+expr = makeExprParser expr0 []
+
+expr0 :: Parser SExpr
+expr0 =  try lamExpr
      <|> try appExpr
-     <|> try tupExpr
-     <|> try constExpr
      <|> idExpr
 
-exprs :: Parser [Bare]
-exprs = parens (sepBy1 expr comma)
+idExpr :: Parser SExpr
+idExpr = uncurry EVar <$> identifier
 
-getExpr :: Parser Bare
-getExpr = withSpan' (GetItem <$> funExpr <*> brackets expr)
-  -- where
-  -- getItem eV eI = GetItem eV eI (stretch [eV, eI])
-
-appExpr :: Parser Bare
--- appExpr = App <$> funExpr <*> exprs <*> pure ()
-appExpr  = apps <$> funExpr <*> sepBy1 exprs sc
+appExpr :: Parser SExpr
+appExpr  = apps <$> funExpr <*> sepBy1 funExpr sc
   where
-    apps = L.foldl' (\e es -> App e es (stretch (e:es)))
+    apps = L.foldl' (\e1 e2 -> EApp e1 e2 (tag e1 `mappend` tag e2))
 
-funExpr :: Parser Bare
-funExpr = try idExpr <|> tupExpr
+funExpr :: Parser SExpr
+funExpr = try idExpr <|> parens expr
 
-tupExpr :: Parser Bare
-tupExpr = withSpan' (mkTuple <$> exprs)
-
-mkTuple :: [Bare] -> SourceSpan -> Bare
-mkTuple [e] _ = e
-mkTuple es  l = Tuple es l
-
-binops :: [[Operator Parser Bare]]
-binops =
-  [ [ InfixL (symbol "*"  *> pure (op Times))
-    ]
-  , [ InfixL (symbol "+"  *> pure (op Plus))
-    , InfixL (symbol "-"  *> pure (op Minus))
-    ]
-  , [ InfixL (symbol "==" *> pure (op Equal))
-    , InfixL (symbol ">"  *> pure (op Greater))
-    , InfixL (symbol "<"  *> pure (op Less))
-    ]
-  ]
-  where
-    op o e1 e2 = Prim2 o e1 e2 (stretch [e1, e2])
-
-idExpr :: Parser Bare
-idExpr = uncurry Id <$> identifier
-
-constExpr :: Parser Bare
-constExpr
-   =  (uncurry Number <$> integer)
-  <|> (Boolean True   <$> rWord "true")
-  <|> (Boolean False  <$> rWord "false")
-
-primExpr :: Parser Bare
-primExpr = withSpan' (Prim1 <$> primOp <*> parens expr)
-
-primOp :: Parser Prim1
-primOp
-  =  try (rWord "add1"   *> pure Add1)
- <|> try (rWord "sub1"   *> pure Sub1)
- <|> try (rWord "isNum"  *> pure IsNum)
- <|> try (rWord "isBool" *> pure IsBool)
- <|> (rWord "print"  *> pure Print)
-
-letExpr :: Parser Bare
-letExpr = withSpan' $ do
-  rWord "let"
-  bs <- sepBy1 bind comma
-  rWord "in"
-  e  <- expr
-  return (bindsExpr bs e)
-
-bind :: Parser (BareBind, Bare)
-bind = (,) <$> binder <* symbol "=" <*> expr
-  -- do
-  -- x      <- binder
-  -- void (symbol "=")
-  -- e      <- expr
-  -- return (x, e)
-
-ifExpr :: Parser Bare
-ifExpr = withSpan' $ do
-  rWord "if"
-  b  <- expr
-  e1 <- between colon elsecolon expr
-  e2 <- expr
-  return (If b e1 e2)
-  where
-   elsecolon = rWord "else" *> colon
-
-lamExpr :: Parser Bare
-lamExpr = withSpan' $ do
-  rWord "lambda"
-  xs    <- parens (sepBy binder comma) <* colon
+lamExpr :: Parser SExpr
+lamExpr = do
+  lam
+  xs    <- sepBy binder sc <* arrow
   e     <- expr
-  return (Lam xs e)
-
--- param :: Parser Id
--- param = fst <$> identifier
-
-
-defExpr :: Parser Bare
-defExpr = withSpan' $ do
-  rWord "def"
-  f  <- binder
-  xs <- parens (sepBy binder comma) <* colon
-  e1 <- expr
-  rWord "in"
-  e2 <- expr
-  return (dec f xs e1 e2)
+  return (mkLam xs e)

@@ -8,7 +8,13 @@ import           Data.Monoid
 import           Language.Elsa.UX
 
 type Id    = String
+
+type SElsa = Elsa SourceSpan
 type SExpr = Expr SourceSpan
+type SEval = Eval SourceSpan
+type SStep = Step SourceSpan
+type SBind = Bind SourceSpan
+type SEqn  = Eqn  SourceSpan
 
 --------------------------------------------------------------------------------
 -- | Programs
