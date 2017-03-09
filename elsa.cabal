@@ -1,0 +1,54 @@
+name:                hw4-nano
+version:             0.1.0.0
+synopsis:            Starter code for cse130 homework/04-nano
+license:             MIT
+license-file:        LICENSE
+author:              Ranjit Jhala
+maintainer:          jhala@cs.ucsd.edu
+category:            Language
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+
+Library
+  ghc-options:         -W -threaded
+  exposed-modules:    Language.Nano.Types,
+                      Language.Nano.Eval,
+                      Language.Nano.Parser
+  Default-Extensions: OverloadedStrings
+
+  -- other-extensions:
+  build-depends:       base,
+                       array,
+                       mtl
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  build-tools:         alex, happy
+  other-modules:       Language.Nano.Lexer
+
+executable nano
+  build-depends:       base,
+                       haskeline,
+                       mtl,
+                       transformers,
+                       hw4-nano
+  default-language:    Haskell2010
+  main-is:             bin/Main.hs
+  Default-Extensions: OverloadedStrings
+
+test-suite test
+  default-language: Haskell98
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests
+  ghc-options:      -threaded
+  Default-Extensions: OverloadedStrings
+  main-is:          Test.hs
+  build-depends:    base,
+                    directory,
+                    filepath,
+                    tasty,
+                    tasty-hunit,
+                    hw4-nano
+  other-modules:    Common

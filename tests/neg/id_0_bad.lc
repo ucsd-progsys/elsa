@@ -1,0 +1,7 @@
+id   = \x -> x
+zero = \f x -> x
+
+eval id_zero :
+  id zero
+  =b> (\f x -> x)
+  =d> zero

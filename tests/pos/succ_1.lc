@@ -1,0 +1,11 @@
+one  = \f x -> f x
+two  = \f x -> f (f x)
+incr = \n f x -> f (n f x)
+
+eval succ_one :
+  incr one
+  =d> (\n f x -> f (n f x)) (\f x -> f x)
+  =b> \f x -> f ((\f x -> f x) f x)
+  =b> \f x -> f ((\x -> f x) x)
+  =b> \f x -> f (f x)
+  =d> two
