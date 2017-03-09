@@ -1,6 +1,6 @@
-name:                hw4-nano
+name:                elsa
 version:             0.1.0.0
-synopsis:            Starter code for cse130 homework/04-nano
+synopsis:            A tiny language for understanding the lambda-calculus
 license:             MIT
 license-file:        LICENSE
 author:              Ranjit Jhala
@@ -13,30 +13,33 @@ cabal-version:       >=1.10
 
 Library
   ghc-options:         -W -threaded
-  exposed-modules:    Language.Nano.Types,
-                      Language.Nano.Eval,
-                      Language.Nano.Parser
+  exposed-modules:    Language.Elsa.Types,
+                      Language.Elsa.Eval,
+                      Language.Elsa.Parser
   Default-Extensions: OverloadedStrings
 
   -- other-extensions:
   build-depends:       base,
                        array,
-                       mtl
+                       mtl,
+                       containers,
+                       directory,
+                       filepath 
 
   hs-source-dirs:      src
   default-language:    Haskell2010
   build-tools:         alex, happy
-  other-modules:       Language.Nano.Lexer
+  other-modules:       Language.Elsa.Lexer,
+                       Language.Elsa.UX,
+                       Language.Elsa.Utils
 
-executable nano
+executable elsa
   build-depends:       base,
-                       haskeline,
                        mtl,
-                       transformers,
-                       hw4-nano
+                       elsa
   default-language:    Haskell2010
-  main-is:             bin/Main.hs
-  Default-Extensions: OverloadedStrings
+  main-is:             src/Main.hs
+  Default-Extensions:  OverloadedStrings
 
 test-suite test
   default-language: Haskell98
@@ -50,5 +53,4 @@ test-suite test
                     filepath,
                     tasty,
                     tasty-hunit,
-                    hw4-nano
-  other-modules:    Common
+                    elsa

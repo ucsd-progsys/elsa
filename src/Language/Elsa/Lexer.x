@@ -1,7 +1,7 @@
 {
 {-# LANGUAGE FlexibleContexts #-}
 
-module Language.Nano.Lexer (
+module Language.Elsa.Lexer (
   Token(..),
   scanTokens
 ) where

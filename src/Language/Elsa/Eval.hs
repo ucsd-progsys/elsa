@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Language.Nano.Eval
+module Language.Elsa.Eval
   ( execFile, execString, execExpr
   , eval, lookupId, prelude
   , parse
@@ -9,8 +9,8 @@ module Language.Nano.Eval
   where
 
 import Control.Exception (throw, catch)
-import Language.Nano.Types
-import Language.Nano.Parser
+import Language.Elsa.Types
+import Language.Elsa.Parser
 
 --------------------------------------------------------------------------------
 execFile :: FilePath -> IO Value

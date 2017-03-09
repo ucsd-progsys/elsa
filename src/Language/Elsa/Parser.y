@@ -2,13 +2,13 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 
-module Language.Nano.Parser (
+module Language.Elsa.Parser (
     parseExpr
   , parseTokens
   ) where
 
-import Language.Nano.Lexer
-import Language.Nano.Types hiding (Nano (..))
+import Language.Elsa.Lexer
+import Language.Elsa.Types  hiding (Nano (..))
 import Control.Monad.Except
 import Control.Exception
 
@@ -102,9 +102,6 @@ Ids : ID                           { [$1]           }
     | ID Ids                       { $1 : $2        }
 
 {
-mkLam :: [Id] -> Expr -> Expr
-mkLam []     e = e
-mkLam (x:xs) e = ELam x (mkLam xs e)
 
 parseError :: [Token] -> Except String a
 parseError (l:ls) = throwError (show l)

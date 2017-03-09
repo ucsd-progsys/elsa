@@ -1,130 +1,89 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 
-module Language.Nano.Types where
+module Language.Elsa.Types where
 
-import           GHC.Exts( IsString(..) )
 import           Text.Printf (printf)
-import qualified Data.List as L
+import           Data.Monoid
+import           Language.Elsa.UX
 
-import           Control.Exception
-import           Data.Typeable
-
-data Error = Error {errMsg :: String}
-             deriving (Show, Typeable)
-
-instance Exception Error
-
-data Binop
-  = Plus
-  | Minus
-  | Mul
-  | Div
-  | Eq
-  | Ne
-  | Lt
-  | Le
-  | And
-  | Or
-  | Cons
-  deriving (Eq, Ord, Show)
-
-type Id = String
-
-instance IsString Expr where
-  fromString = EVar
-
-data Expr
-  = EInt  Int
-  | EBool Bool
-  | ENil
-  | EVar Id
-  | EBin Binop Expr Expr
-  | EIf  Expr Expr  Expr
-  | ELet Id   Expr  Expr
-  | EApp Expr Expr
-  | ELam Id   Expr
-  deriving (Eq, Show)
-
-data Value
-  = VInt  Int
-  | VBool Bool
-  | VClos Env Id Expr
-  | VNil
-  | VPair Value Value
-  | VErr  String
-  | VPrim (Value -> Value)
-
-type Env = [(Id, Value)]
-
-instance Eq Value where
-  (VInt x1)     == (VInt x2)     = x1 == x2
-  (VBool x1)    == (VBool x2)    = x1 == x2
-  VNil          == VNil          = True
-  (VPair x1 y1) == (VPair x2 y2) = x1 == x2 && y1 == y2
-  _             == _             = False
-
--- instance Show Binop where
---   show = binopString
-
-instance Show Value where
-  show = valueString
-
--- instance Show Expr where
---   show = exprString
-
-binopString :: Binop -> String
-binopString Plus  = "+"
-binopString Minus = "-"
-binopString Mul   = "*"
-binopString Div   = "/"
-binopString Eq    = "="
-binopString Ne    = "!="
-binopString Lt    = "<"
-binopString Le    = "<="
-binopString And   = "&&"
-binopString Or    = "||"
-binopString Cons  = ":"
-
-valueString :: Value -> String
-valueString (VInt i)        = printf "%d" i
-valueString (VBool b)       = printf "%s" (show b)
-valueString (VClos env x v) = printf "<<%s, \\%s -> %s>>" (envString env) x (show v)
-valueString (VPair v w)     = printf "(%s : %s)" (show v) (show w)
-valueString (VErr s)        = printf "ERROR: %s" s
-valueString VNil            = "[]"
-valueString (VPrim _)       = "<<primitive-function>>"
-
-envString :: Env -> String
-envString env = printf "{ %s }" (L.intercalate ", " bs)
-  where
-    bs        = [ x ++ " := " ++ show v | (x, v) <- env]
-
-exprString :: Expr -> String
-exprString (EInt i)       = printf "%d" i
-exprString (EBool b)      = printf "%s" (show b)
-exprString (EVar x)       = x
-exprString (EBin o e1 e2) = printf "(%s %s %s)" (show e1) (show o) (show e2)
-exprString (EIf c t e)    = printf "if %s then %s else %s" (show c) (show t) (show e)
-exprString (ELet x e e')  = printf "let %s = %s in \n %s" x (show e) (show e')
-exprString (EApp e1 e2)   = printf "(%s %s)" (show e1) (show e2)
-exprString (ELam x e)     = printf "\\%s -> %s" x (show e)
-exprString ENil           = "[]"
+type Id    = String
+type SExpr = Expr SourceSpan
 
 --------------------------------------------------------------------------------
-class Nano a where
-  expr  :: a -> Expr
-  value :: a -> Value
+-- | Programs
+--------------------------------------------------------------------------------
 
-instance Nano Int where
-  expr  = EInt
-  value = VInt
+data Elsa a = Elsa
+  { defns :: [(Bind a, Expr a)]
+  , evals :: [Eval a]
+  }
+  deriving (Eq, Show)
 
-instance Nano Bool where
-  expr  = EBool
-  value = VBool
+data Eval a = Eval
+  { evName  :: !(Bind a)
+  , evRoot  :: !(Expr a)
+  , evSteps :: [Step a]
+  }
+  deriving (Eq, Show)
 
-exprList :: [Expr] -> Expr
-exprList = foldr (EBin Cons) ENil
+data Step a
+  = Step !(Eqn a) !(Expr a)
+  deriving (Eq, Show)
 
-valueList :: [Value] -> Value
-valueList = foldr VPair VNil
+data Eqn a
+  = AlphEq a
+  | BetaEq a
+  | DefnEq a
+  deriving (Eq, Show)
+
+data Bind a
+  = Bind Id a
+  deriving (Eq, Show)
+
+data Expr a
+  = EVar Id                  a
+  | ELam !(Bind a) !(Expr a) a
+  | EApp !(Expr a) !(Expr a) a
+  deriving (Eq, Show)
+
+--------------------------------------------------------------------------------
+-- | Pretty Printing
+--------------------------------------------------------------------------------
+instance PPrint (Bind a) where
+  pprint (Bind x _) = x
+
+instance PPrint [Bind a] where
+  pprint = unwords . map pprint
+
+instance PPrint (Expr a) where
+  pprint (EVar x _)     = x
+  pprint (EApp e1 e2 _) = printf "(%s %s)" (pprint e1) (pprint e2)
+  pprint e@(ELam {})    = printf "\\%s -> %s" (pprint xs) (pprint body)
+    where
+      (xs, body)        = bkLam e
+
+bkLam :: Expr a -> ([Bind a], Expr a)
+bkLam (ELam x e _) = (x:xs, body)
+  where
+    (xs, body)     = bkLam e
+bkLam e            = ([], e)
+
+mkLam :: (Monoid a) => [Bind a] -> Expr a -> Expr a
+mkLam []       e = e
+mkLam (x:xs) e = ELam x (mkLam xs e) (tag x <> tag e)
+
+--------------------------------------------------------------------------------
+-- | Tag Extraction
+--------------------------------------------------------------------------------
+
+class Tagged t where
+  tag :: t a -> a
+
+instance Tagged Bind where
+  tag (Bind _   x) = x
+
+instance Tagged Expr where
+  tag (EVar _   x) = x
+  tag (ELam _ _ x) = x
+  tag (EApp _ _ x) = x
