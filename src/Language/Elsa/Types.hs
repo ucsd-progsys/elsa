@@ -10,6 +10,7 @@ import           Language.Elsa.UX
 type Id    = String
 
 type SElsa = Elsa SourceSpan
+type SDefn = Defn SourceSpan
 type SExpr = Expr SourceSpan
 type SEval = Eval SourceSpan
 type SStep = Step SourceSpan
@@ -17,13 +18,26 @@ type SBind = Bind SourceSpan
 type SEqn  = Eqn  SourceSpan
 
 --------------------------------------------------------------------------------
+-- | Result
+--------------------------------------------------------------------------------
+data Result a
+  = OK
+  | Partial a
+  | Invalid a
+  deriving (Eq, Show)
+
+--------------------------------------------------------------------------------
 -- | Programs
 --------------------------------------------------------------------------------
 
 data Elsa a = Elsa
-  { defns :: [(Bind a, Expr a)]
+  { defns :: [Defn a]
   , evals :: [Eval a]
   }
+  deriving (Eq, Show)
+
+data Defn a
+  = Defn !(Bind a) !(Expr a)
   deriving (Eq, Show)
 
 data Eval a = Eval
@@ -53,9 +67,9 @@ data Expr a
   | EApp !(Expr a) !(Expr a) a
   deriving (Eq, Show)
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 -- | Pretty Printing
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 instance PPrint (Bind a) where
   pprint (Bind x _) = x
 
@@ -79,9 +93,9 @@ mkLam :: (Monoid a) => [Bind a] -> Expr a -> Expr a
 mkLam []       e = e
 mkLam (x:xs) e = ELam x (mkLam xs e) (tag x <> tag e)
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 -- | Tag Extraction
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 
 class Tagged t where
   tag :: t a -> a

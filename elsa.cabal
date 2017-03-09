@@ -29,9 +29,8 @@ Library
 
   hs-source-dirs:      src
   default-language:    Haskell2010
-  build-tools:         alex, happy
-  other-modules:       Language.Elsa.Lexer,
-                       Language.Elsa.UX,
+--  build-tools:         alex, happy
+  other-modules:       Language.Elsa.UX,
                        Language.Elsa.Utils
 
 executable elsa

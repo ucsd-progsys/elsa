@@ -71,10 +71,6 @@ betweenS l r = between (symbol l) (symbol r)
 lexeme :: Parser a -> Parser (a, SourceSpan)
 lexeme p = L.lexeme sc (withSpan p)
 
--- | 'integer' parses an integer.
-integer :: Parser (Integer, SourceSpan)
-integer = lexeme L.integer
-
 -- | `rWord`
 rWord   :: String -> Parser SourceSpan
 rWord w = snd <$> (withSpan (string w) <* notFollowedBy alphaNumChar <* sc)
@@ -117,12 +113,12 @@ withSpan p = do
 elsa :: Parser SElsa
 elsa = Elsa <$> many defn <*> many eval
 
-defn :: Parser (SBind, SExpr)
+defn :: Parser SDefn
 defn = do
   rWord "let"
   b <- binder <* equal
   e <- expr
-  return (b, e)
+  return (Defn b e)
 
 eval :: Parser SEval
 eval = do
