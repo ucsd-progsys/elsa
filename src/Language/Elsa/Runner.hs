@@ -2,38 +2,44 @@
 
 module Language.Elsa.Runner where
 
-import Data.Maybe (mapMaybe)
+import Data.List            (intercalate)
+import Data.Maybe           (mapMaybe)
 import Control.Exception
 import System.IO
 import System.Exit
 import System.Environment   (getArgs)
 import Language.Elsa.Parser (parse)
-import Language.Elsa.Types  (resultError)
+import Language.Elsa.Types  (successes, resultError)
 import Language.Elsa.UX
 import Language.Elsa.Eval   (elsa)
 
+
 topMain:: IO ()
-topMain = runElsa `catch` exitErrors
+topMain = do
+  (js,f) <- getSrcFile
+  s      <- readFile f
+  runElsa js f s `catch` exitErrors js
 
-exitErrors :: [UserError] -> IO ()
-exitErrors = esHandle stderr exitFailure
+exitErrors :: Bool -> [UserError] -> IO ()
+exitErrors json = esHandle json stderr exitFailure
 
-esHandle :: Handle -> IO a -> [UserError] -> IO a
-esHandle h exitF es = renderErrors es >>= hPutStrLn h >> exitF
+esHandle :: Bool -> Handle -> IO a -> [UserError] -> IO a
+esHandle json h exitF es = renderErrors json es >>= hPutStrLn h >> exitF
 
-runElsa :: IO ()
-runElsa = do
-  f     <- getSrcFile
-  s     <- readFile f
-  let rs = elsa (parse f s)
-  let es = mapMaybe resultError rs
+runElsa :: Bool -> FilePath -> Text -> IO ()
+runElsa json f s = do
+  let rs  = elsa (parse f s)
+  let es  = mapMaybe resultError rs
   case es of
-    [] -> exitSuccess
-    _  -> exitErrors es
+    [] -> putStrLn (okMessage rs) >> exitSuccess
+    _  -> exitErrors json es
 
-getSrcFile :: IO Text
+okMessage rs = "OK " ++ intercalate ", " (successes rs) ++ "."
+
+getSrcFile :: IO (Bool, Text)
 getSrcFile = do
   args <- getArgs
   case args of
-    [f] -> return f
-    _   -> error "Please run with a single file as input"
+    ["--json", f] -> return (True,  f)
+    [f]           -> return (False, f)
+    _             -> error "Please run with a single file as input"

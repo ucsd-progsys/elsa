@@ -203,8 +203,14 @@ mkError :: Text -> SourceSpan -> UserError
 --------------------------------------------------------------------------------
 mkError = Error
 
-renderErrors :: [UserError] -> IO Text
-renderErrors es = do
+--------------------------------------------------------------------------------
+renderErrors :: Bool -> [UserError] -> IO Text
+--------------------------------------------------------------------------------
+renderErrors True  es = return (renderErrorsJson es)
+renderErrors False es = renderErrorsText es
+
+renderErrorsText :: [UserError] -> IO Text
+renderErrorsText es = do
   errs  <- mapM renderError es
   return $ L.intercalate "\n" ("Errors found!" : errs)
 
@@ -213,3 +219,17 @@ renderError e = do
   let sp   = sourceSpan e
   snippet <- readFileSpan sp
   return   $ printf "%s: %s\n\n%s" (pprint sp) (eMsg e) snippet
+
+renderErrorsJson :: [UserError] -> Text
+renderErrorsJson es = "RESULT\n[" ++ errs ++ "]"
+  where
+    errs            = L.intercalate "\n," (errJson <$> es)
+
+errJson :: UserError -> Text
+errJson err = printf "{ \"start\" : %s, \"stop\" : %s, \"message\" : \"%s\" }"
+                (posJson $ ssBegin sp) (posJson $ ssEnd sp) (eMsg err)
+  where sp  = eSpan err
+
+posJson :: SourcePos -> Text
+posJson sp = printf "{ \"line\" : %d, \"column\" : %d }"
+               (sourceLine sp) (sourceColumn sp)

@@ -1,6 +1,16 @@
-one  = \f x -> f x
-two  = \f x -> f (f x)
-incr = \n f x -> f (n f x)
+
+let id   = \x -> x
+
+let zero = \f x -> x
+let one  = \f x -> f x
+let two  = \f x -> f (f x)
+let incr = \n f x -> f (n f x)
+
+eval id_zero :
+  id zero
+  =d> (\x -> x) (\f x -> x)
+  =b> (\f x -> x)
+  =d> zero
 
 eval succ_one :
   incr one

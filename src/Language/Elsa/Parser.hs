@@ -2,7 +2,6 @@ module Language.Elsa.Parser ( parse, parseFile ) where
 
 import           Control.Monad (void)
 import           Text.Megaparsec hiding (parse)
-import           Text.Megaparsec.Expr
 import           Text.Megaparsec.String
 import qualified Text.Megaparsec.Lexer as L
 import qualified Data.List as L
@@ -83,10 +82,14 @@ keywords = [ "let"  , "eval" ]
 identifier :: Parser (String, SourceSpan)
 identifier = lexeme (p >>= check)
   where
-    p       = (:) <$> letterChar <*> many alphaNumChar
+    p       = (:) <$> letterChar <*> many identChar -- alphaNumChar
     check x = if x `elem` keywords
                 then fail $ "keyword " ++ show x ++ " cannot be an identifier"
                 else return x
+
+identChar :: Parser Char
+identChar =  alphaNumChar
+         <|> oneOf "_#'"
 
 -- | `binder` parses BareBind, used for let-binds and function parameters.
 binder :: Parser SBind
@@ -134,15 +137,19 @@ step = Step <$> eqn <*> expr
 eqn :: Parser SEqn
 eqn =  try (withSpan' (symbol "=a>" >> return AlphEq))
    <|> try (withSpan' (symbol "=b>" >> return BetaEq))
-   <|> try (withSpan' (symbol "=d>" >> return DefnEq))
+   <|>     (withSpan' (symbol "=d>" >> return DefnEq))
+
+-- expr :: Parser SExpr
+-- expr = makeExprParser expr0 []
 
 expr :: Parser SExpr
-expr = makeExprParser expr0 []
+expr =  try lamExpr
+    <|> try appExpr
+    <|> try idExpr
+    <|> parenExpr
 
-expr0 :: Parser SExpr
-expr0 =  try lamExpr
-     <|> try appExpr
-     <|> idExpr
+parenExpr :: Parser SExpr
+parenExpr = parens expr
 
 idExpr :: Parser SExpr
 idExpr = uncurry EVar <$> identifier
@@ -153,7 +160,7 @@ appExpr  = apps <$> funExpr <*> sepBy1 funExpr sc
     apps = L.foldl' (\e1 e2 -> EApp e1 e2 (tag e1 `mappend` tag e2))
 
 funExpr :: Parser SExpr
-funExpr = try idExpr <|> parens expr
+funExpr = try idExpr <|> parenExpr
 
 lamExpr :: Parser SExpr
 lamExpr = do

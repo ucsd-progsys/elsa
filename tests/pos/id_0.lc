@@ -1,7 +1,7 @@
 let id   = \x -> x
 let zero = \f x -> x
 
-eval idZero :
+eval id_zero :
   id zero
   =d> (\x -> x) (\f x -> x)
   =b> (\f x -> x)

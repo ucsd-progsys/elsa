@@ -45,7 +45,7 @@ successes = mapMaybe go
 resultError :: (Located a) => Result a -> Maybe UserError
 resultError (Partial b l)   = mkErr l (bindId b ++ " can be further reduced!")
 resultError (Invalid b l)   = mkErr l (bindId b ++ " has an invalid reduction!")
-resultError (Unbound b x l) = mkErr l (bindId b ++ " has an unbound variable!")
+resultError (Unbound b x l) = mkErr l (bindId b ++ " has an unbound variable " ++ x )
 resultError _               = Nothing
 
 mkErr :: (Located a) => a -> Text -> Maybe UserError

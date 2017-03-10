@@ -1,6 +1,6 @@
-one  = \f x -> f x
-two  = \f x -> f (f x)
-incr = \n f x -> f (n f x)
+let one  = \f x -> f x
+let two  = \f x -> f (f x)
+let incr = \n f x -> f (n f x)
 
 eval succ_one :
   incr one

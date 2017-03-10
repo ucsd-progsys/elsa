@@ -1,5 +1,5 @@
-id   = \x -> x
-zero = \f x -> x
+let id   = \x -> x
+let zero = \f x -> x
 
 eval id_zero :
   id zero
