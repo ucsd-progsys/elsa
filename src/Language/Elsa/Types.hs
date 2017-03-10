@@ -6,6 +6,7 @@ module Language.Elsa.Types where
 import           Text.Printf (printf)
 import           Data.Monoid
 import           Language.Elsa.UX
+import           Data.Maybe (mapMaybe)
 
 type Id    = String
 
@@ -21,10 +22,34 @@ type SEqn  = Eqn  SourceSpan
 -- | Result
 --------------------------------------------------------------------------------
 data Result a
-  = OK
-  | Partial a
-  | Invalid a
+  = OK      (Bind a)
+  | Partial (Bind a)    a
+  | Invalid (Bind a)    a
+  | Unbound (Bind a) Id a
   deriving (Eq, Show)
+
+failures :: [Result a] -> [Id]
+failures = mapMaybe go
+  where
+    go (Partial b _)   = Just (bindId b)
+    go (Invalid b _)   = Just (bindId b)
+    go (Unbound b _ _) = Just (bindId b)
+    go _               = Nothing
+
+successes :: [Result a] -> [Id]
+successes = mapMaybe go
+  where
+    go (OK b) = Just (bindId b)
+    go _      = Nothing
+
+resultError :: (Located a) => Result a -> Maybe UserError
+resultError (Partial b l)   = mkErr l (bindId b ++ " can be further reduced!")
+resultError (Invalid b l)   = mkErr l (bindId b ++ " has an invalid reduction!")
+resultError (Unbound b x l) = mkErr l (bindId b ++ " has an unbound variable!")
+resultError _               = Nothing
+
+mkErr :: (Located a) => a -> Text -> Maybe UserError
+mkErr l msg = Just (mkError msg (sourceSpan l))
 
 --------------------------------------------------------------------------------
 -- | Programs
@@ -59,13 +84,22 @@ data Eqn a
 
 data Bind a
   = Bind Id a
-  deriving (Eq, Show)
+  deriving (Show)
 
 data Expr a
   = EVar Id                  a
   | ELam !(Bind a) !(Expr a) a
   | EApp !(Expr a) !(Expr a) a
-  deriving (Eq, Show)
+  deriving (Show)
+
+instance Eq (Bind a) where
+  b1 == b2 = bindId b1 == bindId b2
+
+instance Eq (Expr a) where
+  (EVar x _)      == (EVar y _)      = x == y
+  (ELam b1 e1 _)  == (ELam b2 e2 _ ) = b1 == b2 && e1  == e2
+  (EApp e1 e1' _) == (EApp e2 e2' _) = e1 == e2 && e1' == e2'
+  _               == _               = False
 
 -------------------------------------------------------------------------------------
 -- | Pretty Printing
@@ -93,12 +127,19 @@ mkLam :: (Monoid a) => [Bind a] -> Expr a -> Expr a
 mkLam []       e = e
 mkLam (x:xs) e = ELam x (mkLam xs e) (tag x <> tag e)
 
+bindId :: Bind a -> Id
+bindId (Bind x _) = x
+
 -------------------------------------------------------------------------------------
 -- | Tag Extraction
 -------------------------------------------------------------------------------------
-
 class Tagged t where
   tag :: t a -> a
+
+instance Tagged Eqn where
+  tag (AlphEq x) = x
+  tag (BetaEq x) = x
+  tag (DefnEq x) = x
 
 instance Tagged Bind where
   tag (Bind _   x) = x

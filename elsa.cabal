@@ -15,7 +15,9 @@ Library
   ghc-options:         -W -threaded
   exposed-modules:    Language.Elsa.Types,
                       Language.Elsa.Eval,
-                      Language.Elsa.Parser
+                      Language.Elsa.Parser,
+                      Language.Elsa.Runner
+
   Default-Extensions: OverloadedStrings
 
   -- other-extensions:
