@@ -23,9 +23,12 @@ mkEnv :: [Defn a] -> CheckM a (Env a)
 mkEnv = foldM expand M.empty
 
 expand :: Env a -> Defn a -> CheckM a (Env a)
-expand g (Defn b e) = case M.toList (freeVars' e) of
-                        (x, l) : _ -> Left  (Unbound b x l)
-                        []         -> Right (M.insert (bindId b) (subst e g) g)
+expand g (Defn b e) = case zs of
+                        (x,l) : _ -> Left  (Unbound b x l)
+                        []        -> Right (M.insert (bindId b) e' g)
+  where
+    e'              = subst e g
+    zs              = M.toList (freeVars' e')
 
 --------------------------------------------------------------------------------
 type CheckM a b = Either (Result a) b
@@ -100,7 +103,7 @@ isBetaEq :: Env a -> Expr a -> Expr a -> Bool
 isBetaEq _ e1 e2 = or [ e1' == e2 | e1' <- betas e1]
 
 isNormal :: Env a -> Expr a -> Bool
-isNormal _ = null . betas
+isNormal g = null . betas . (`subst` g)
 
 -- | `betas e` returns the list [e1,...en] of terms obtainable via a single-step
 --   beta reduction from `e`.
