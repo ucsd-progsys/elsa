@@ -4,6 +4,7 @@ module Language.Elsa.Runner where
 
 import Data.List            (intercalate)
 import Data.Maybe           (mapMaybe)
+import Control.Monad        (unless)
 import Control.Exception
 import System.IO
 import System.Exit
@@ -31,7 +32,7 @@ runElsa json f s = do
   let rs  = elsa (parse f s)
   let es  = mapMaybe resultError rs
   case es of
-    [] -> putStrLn (okMessage rs) >> exitSuccess
+    [] -> unless json (putStrLn (okMessage rs)) >> exitSuccess
     _  -> exitErrors json es
 
 okMessage rs = "OK " ++ intercalate ", " (successes rs) ++ "."

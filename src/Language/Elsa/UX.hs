@@ -40,6 +40,8 @@ import qualified Data.List as L
 import           Text.Printf (printf)
 import           Text.Megaparsec
 import           Text.Megaparsec.Pos
+-- import           Text.JSON.Pretty
+import           Text.JSON hiding (Error)
 import           Language.Elsa.Utils
 
 type Text = String
@@ -221,15 +223,25 @@ renderError e = do
   return   $ printf "%s: %s\n\n%s" (pprint sp) (eMsg e) snippet
 
 renderErrorsJson :: [UserError] -> Text
-renderErrorsJson es = "RESULT\n[" ++ errs ++ "]"
-  where
-    errs            = L.intercalate "\n," (errJson <$> es)
+renderErrorsJson es = "RESULT\n" ++ showJSValue (showJSON es) ""
 
-errJson :: UserError -> Text
-errJson err = printf "{ \"start\" : %s, \"stop\" : %s, \"message\" : \"%s\" }"
-                (posJson $ ssBegin sp) (posJson $ ssEnd sp) (eMsg err)
-  where sp  = eSpan err
+instance JSON UserError where
+  readJSON     = undefined
+  showJSON err = jObj [ ("start"  , showJSON $ start err)
+                      , ("stop"   , showJSON $ stop err )
+                      , ("message", showJSON $ eMsg err )
+                      ]
+    where
+      start    = ssBegin . eSpan
+      stop     = ssEnd   . eSpan
 
-posJson :: SourcePos -> Text
-posJson sp = printf "{ \"line\" : %d, \"column\" : %d }"
-               (sourceLine sp) (sourceColumn sp)
+jObj = JSObject . toJSObject
+
+instance JSON SourcePos where
+  readJSON    = undefined
+  showJSON sp = jObj [ ("line"  , showJSON l)
+                     , ("column", showJSON c)
+                     ]
+    where
+      l       = sourceLine   sp
+      c       = sourceColumn sp
