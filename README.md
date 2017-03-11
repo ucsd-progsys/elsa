@@ -114,7 +114,7 @@ An `elsa` program has the form
 
 ```haskell
 -- definitions
-[<id> = <term>]+
+[let <id> = <term>]+
 
 -- reductions
 [<reduction>]*
