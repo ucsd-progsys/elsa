@@ -10,9 +10,30 @@ a light-weight _proof checker_ that determines
 whether, under a given sequence of definitions,
 a particular term _reduces to_ to another.
 
-## Full Evaluation
+## Online Demo 
 
-For example, `elsa` programs look like:
+You can try `elsa` online at [this link](http://goto.ucsd.edu:8095/index.html)
+
+## Install 
+
+You can locally build and run `elsa` by 
+
+1. Installing [stack](https://www.haskellstack.org)
+2. Cloning this repo
+3. Building `elsa` with `stack`.
+
+That is, to say
+
+```bash 
+$ curl -sSL https://get.haskellstack.org/ | sh
+$ git clone https://github.com/ucsd-progsys/elsa.git
+$ cd elsa 
+$ stack install
+```
+
+## Overview 
+
+`elsa` programs look like:
 
 ```haskell
 -- id_0.lc
@@ -26,7 +47,7 @@ eval id_zero :
   =d> zero
 ```
 
-When you run it, you should get the following output:
+When you run `elsa` on the above, you should get the following output:
 
 ```bash
 $ elsa ex1.lc
@@ -77,8 +98,8 @@ eval succ_one :
   =d> (\n f x -> f (n f x)) (\f x -> f x)
   =b> \f x -> f ((\f x -> f x) f x)
   =b> \f x -> f ((\x -> f x) x)
-  =b> \f x -> f (f x)
-  =d> two
+  =b> \f x -> f (f x)                 -- beta-reduce the above 
+  =d> two                             -- optional
 ```
 
 Similarly, `elsa` rejects the following program,
