@@ -4,11 +4,13 @@ module Language.Elsa.Runner where
 
 import Data.List            (intercalate)
 import Data.Maybe           (mapMaybe)
-import Control.Monad        (unless)
+import Control.Monad        (when)
 import Control.Exception
 import System.IO
 import System.Exit
 import System.Environment   (getArgs)
+import System.FilePath      -- (takeDirectory, takeFileName)
+import System.Directory     -- (takeDirectory, takeFileName)
 import Language.Elsa.Parser (parse)
 import Language.Elsa.Types  (successes, resultError)
 import Language.Elsa.UX
@@ -17,30 +19,44 @@ import Language.Elsa.Eval   (elsa)
 
 topMain:: IO ()
 topMain = do
-  (js,f) <- getSrcFile
+  (m, f) <- getSrcFile
   s      <- readFile f
-  runElsa js f s `catch` exitErrors js
+  runElsa m f s `catch` exitErrors m f
 
-exitErrors :: Bool -> [UserError] -> IO ()
-exitErrors json = esHandle json stderr exitFailure
+exitErrors :: Mode -> FilePath -> [UserError] -> IO ()
+exitErrors mode f es = esHandle mode (modeWriter mode f) resultExit es
 
-esHandle :: Bool -> Handle -> IO a -> [UserError] -> IO a
-esHandle json h exitF es = renderErrors json es >>= hPutStrLn h >> exitF
+resultExit :: [UserError] -> IO a
+resultExit [] = exitSuccess
+resultExit _  = exitFailure
 
-runElsa :: Bool -> FilePath -> Text -> IO ()
-runElsa json f s = do
+esHandle :: Mode -> (Text -> IO ()) -> ([UserError] -> IO a) -> [UserError] -> IO a
+esHandle mode writer exitF es = renderErrors mode es >>= writer >> exitF es
+
+modeWriter :: Mode -> FilePath -> Text -> IO ()
+modeWriter Cmdline _ s = hPutStrLn stderr s
+modeWriter Json    _ s = hPutStrLn stderr s
+modeWriter Server  f s = do createDirectoryIfMissing True jsonDir
+                            writeFile jsonFile s
+                            hPutStrLn stderr s
+                         where
+                            jsonDir  = takeDirectory f </> ".elsa"
+                            jsonFile = jsonDir </> addExtension (takeFileName f) ".json"
+
+runElsa :: Mode -> FilePath -> Text -> IO ()
+runElsa mode f s = do
   let rs  = elsa (parse f s)
   let es  = mapMaybe resultError rs
-  case es of
-    [] -> unless json (putStrLn (okMessage rs)) >> exitSuccess
-    _  -> exitErrors json es
+  when (null es && mode == Cmdline) (putStrLn (okMessage rs))
+  exitErrors mode f es
 
 okMessage rs = "OK " ++ intercalate ", " (successes rs) ++ "."
 
-getSrcFile :: IO (Bool, Text)
+getSrcFile :: IO (Mode, Text)
 getSrcFile = do
   args <- getArgs
   case args of
-    ["--json", f] -> return (True,  f)
-    [f]           -> return (False, f)
-    _             -> error "Please run with a single file as input"
+    ["--json"  , f] -> return (Json,    f)
+    ["--server", f] -> return (Server,  f)
+    [f]             -> return (Cmdline, f)
+    _               -> error "Please run with a single file as input"

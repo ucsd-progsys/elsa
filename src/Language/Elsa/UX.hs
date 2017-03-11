@@ -10,6 +10,9 @@ module Language.Elsa.UX
     SourceSpan (..)
   , Located (..)
 
+  -- * Usage Mode
+  , Mode (..)
+
   -- * Extraction from Source file
   , readFileSpan
 
@@ -172,9 +175,13 @@ junkSpan :: SourceSpan
 junkSpan = posSpan (initialPos "unknown")
 
 --------------------------------------------------------------------------------
--- | Representing overall failure / success
+-- | Usage Mode
 --------------------------------------------------------------------------------
--- type Result a = Either [UserError] a
+data Mode
+  = Json
+  | Cmdline
+  | Server
+  deriving (Eq, Show)
 
 --------------------------------------------------------------------------------
 -- | Representing (unrecoverable) failures
@@ -206,12 +213,15 @@ mkError :: Text -> SourceSpan -> UserError
 mkError = Error
 
 --------------------------------------------------------------------------------
-renderErrors :: Bool -> [UserError] -> IO Text
+renderErrors :: Mode -> [UserError] -> IO Text
 --------------------------------------------------------------------------------
-renderErrors True  es = return (renderErrorsJson es)
-renderErrors False es = renderErrorsText es
+renderErrors Json    es = return (renderErrorsJson es)
+renderErrors Server  es = return (renderResultJson es)
+renderErrors Cmdline es = renderErrorsText es
 
 renderErrorsText :: [UserError] -> IO Text
+renderErrorsText [] =
+  return ""
 renderErrorsText es = do
   errs  <- mapM renderError es
   return $ L.intercalate "\n" ("Errors found!" : errs)
@@ -223,7 +233,21 @@ renderError e = do
   return   $ printf "%s: %s\n\n%s" (pprint sp) (eMsg e) snippet
 
 renderErrorsJson :: [UserError] -> Text
-renderErrorsJson es = "RESULT\n" ++ showJSValue (showJSON es) ""
+renderErrorsJson es = "RESULT\n" ++ showJSValue' (showJSON es)
+
+showJSValue'   :: JSValue -> Text
+showJSValue' x = showJSValue x ""
+
+renderResultJson :: [UserError] -> Text
+renderResultJson es = showJSValue' $ jObj
+                    [ ("types"  , jObj []    )
+                    , ("status" , status   es)
+                    , ("errors" , showJSON es)
+                    ]
+  where
+    status []       = showJSON ("safe"   :: String)
+    status _        = showJSON ("unsafe" :: String)
+
 
 instance JSON UserError where
   readJSON     = undefined
