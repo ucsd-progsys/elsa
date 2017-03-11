@@ -2,12 +2,12 @@
 
 module Language.Elsa.Eval where
 
-import qualified Data.Map  as M
-import qualified Data.Set  as S
+import qualified Data.HashMap.Strict  as M
+import qualified Data.HashSet         as S
 import           Control.Monad.State
-import           Data.Maybe (maybeToList)
+import           Data.Maybe           (isJust, maybeToList)
 import           Language.Elsa.Types
-import           Language.Elsa.Utils (fromEither)
+import           Language.Elsa.Utils  (qPushes, qInit, qPop, fromEither)
 
 --------------------------------------------------------------------------------
 elsa :: Elsa a -> [Result a]
@@ -32,7 +32,7 @@ expand g (Defn b e) = case zs of
 
 --------------------------------------------------------------------------------
 type CheckM a b = Either (Result a) b
-type Env a      = M.Map Id (Expr a)
+type Env a      = M.HashMap Id (Expr a)
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -54,6 +54,30 @@ isEq :: Eqn a -> Env a -> Expr a -> Expr a -> Bool
 isEq (AlphEq _) = isAlphEq
 isEq (BetaEq _) = isBetaEq
 isEq (DefnEq _) = isDefnEq
+isEq (TrnsEq _) = isTrnsEq
+
+--------------------------------------------------------------------------------
+-- | Transitive Reachability
+--------------------------------------------------------------------------------
+isTrnsEq :: Env a -> Expr a -> Expr a -> Bool
+isTrnsEq g e1 e2 = isJust (findTrans (isEquiv g e2) (canon e1))
+  where
+    canon        = alphaNormal . (`subst` g)
+
+isEquiv :: Env a -> Expr a -> Expr a -> Bool
+isEquiv g e1 e2 = isAlphEq g (subst e1 g) (subst e2 g)
+
+findTrans :: (Expr a -> Bool) -> Expr a -> Maybe (Expr a)
+findTrans p e = go S.empty (qInit e)
+  where
+    go seen q = do
+      (e, q') <- qPop q
+      if S.member e seen
+        then go seen q'
+        else if p e
+             then return e
+             else go (S.insert e seen) (qPushes q (betas e))
+
 
 --------------------------------------------------------------------------------
 -- | Definition Equivalence
@@ -72,7 +96,7 @@ alphaNormal e = evalState (normalize M.empty e) 0
 
 type AlphaM a = State Int a
 
-normalize :: M.Map Id Id -> Expr a -> AlphaM (Expr a)
+normalize :: M.HashMap Id Id -> Expr a -> AlphaM (Expr a)
 normalize g (EVar x z) =
   return (EVar (rename g x) z)
 
@@ -87,8 +111,8 @@ normalize g (ELam (Bind x z1) e z2) = do
   e'    <- normalize g' e
   return (ELam (Bind y z1) e' z2)
 
-rename :: M.Map Id Id -> Id -> Id
-rename g x = M.findWithDefault x x g
+rename :: M.HashMap Id Id -> Id -> Id
+rename g x = M.lookupDefault x x g
 
 fresh :: AlphaM Id
 fresh = do
@@ -133,22 +157,22 @@ substCA e x e' = go [] e
     go bs (ELam b e1  l) = do e1' <- go (b:bs) e1
                               Just (ELam b e1' l)
 
-isIn :: Bind a -> S.Set Id -> Bool
+isIn :: Bind a -> S.HashSet Id -> Bool
 isIn = S.member . bindId
 
 --------------------------------------------------------------------------------
 -- | Free Variables and Substitution
 --------------------------------------------------------------------------------
-freeVars :: Expr a -> S.Set Id
+freeVars :: Expr a -> S.HashSet Id
 freeVars = S.fromList . M.keys . freeVars'
 
-freeVars' :: Expr a -> M.Map Id a
+freeVars' :: Expr a -> M.HashMap Id a
 freeVars' (EVar x l)    = M.singleton x l
 freeVars' (ELam b e _)  = M.delete (bindId b)    (freeVars' e)
 freeVars' (EApp e e' _) = M.union  (freeVars' e) (freeVars' e')
 
 subst :: Expr a -> Env a -> Expr a
-subst e@(EVar v _)   su = M.findWithDefault e v su
+subst e@(EVar v _)   su = M.lookupDefault e v su
 subst (EApp e1 e2 z) su = EApp (subst e1 su) (subst e2 su) z
 subst (ELam b e z)   su = ELam b (subst e su') z
   where

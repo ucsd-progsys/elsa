@@ -1,0 +1,46 @@
+
+let id    = \x -> x
+
+let zero  = \f x -> x
+let one   = \f x -> f x
+let two   = \f x -> f (f x)
+let three = \f x -> f (f (f x))
+let four  = \f x -> f (f (f (f x)))
+let five  = \f x -> f (f (f (f (f x))))
+let six   = \f x -> f (f (f (f (f (f x)))))
+
+let suc   = \n f x -> f (n f x)
+
+let add   = \n m -> n suc m
+let mul   = \n m -> n (add m) zero
+
+eval id_zero :
+  id zero
+  =d> (\x -> x) (\f x -> x)
+  =b> (\f x -> x)
+  =d> zero
+
+eval suc_one :
+  suc one
+  =d> (\n f x -> f (n f x)) (\f x -> f x)
+  =b> \f x -> f ((\f x -> f x) f x)
+  =b> \f x -> f ((\x -> f x) x)
+  =b> \f x -> f (f x)
+  =d> two
+
+eval add_zero_zero :
+  add zero zero
+  =d> (\n m -> n suc m) (\f x -> x) (\f x -> x)
+  =b> (\m -> (\f x -> x) suc m) (\f x -> x)
+  =b> ((\f x -> x) suc (\f x -> x))
+  =b> ((\x -> x) (\f x -> x))
+  =b> (\f x -> x)
+  =d> zero
+
+eval add_two_two :
+  add two two
+  =*> four
+
+eval mul_two_three :
+  mul two three
+  =*> six

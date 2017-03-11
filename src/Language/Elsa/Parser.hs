@@ -137,10 +137,8 @@ step = Step <$> eqn <*> expr
 eqn :: Parser SEqn
 eqn =  try (withSpan' (symbol "=a>" >> return AlphEq))
    <|> try (withSpan' (symbol "=b>" >> return BetaEq))
-   <|>     (withSpan' (symbol "=d>" >> return DefnEq))
-
--- expr :: Parser SExpr
--- expr = makeExprParser expr0 []
+   <|> try (withSpan' (symbol "=d>" >> return DefnEq))
+   <|>     (withSpan' (symbol "=*>" >> return TrnsEq))
 
 expr :: Parser SExpr
 expr =  try lamExpr

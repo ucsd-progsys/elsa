@@ -1,12 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric     #-}
 
 module Language.Elsa.Types where
 
+import           GHC.Generics
 import           Text.Printf (printf)
 import           Data.Monoid
 import           Language.Elsa.UX
 import           Data.Maybe (mapMaybe)
+import           Data.Hashable
 
 type Id    = String
 
@@ -17,7 +20,6 @@ type SEval = Eval SourceSpan
 type SStep = Step SourceSpan
 type SBind = Bind SourceSpan
 type SEqn  = Eqn  SourceSpan
-
 
 --------------------------------------------------------------------------------
 -- | Result
@@ -81,6 +83,7 @@ data Eqn a
   = AlphEq a
   | BetaEq a
   | DefnEq a
+  | TrnsEq a
   deriving (Eq, Show)
 
 data Bind a
@@ -91,16 +94,38 @@ data Expr a
   = EVar Id                  a
   | ELam !(Bind a) !(Expr a) a
   | EApp !(Expr a) !(Expr a) a
-  deriving (Show)
+--  deriving (Show)
 
+instance Show (Expr a) where
+  show = pprint
+  
 instance Eq (Bind a) where
   b1 == b2 = bindId b1 == bindId b2
 
+-- instance Eq (Expr a) where
+  -- (EVar x _)      == (EVar y _)      = x == y
+  -- (ELam b1 e1 _)  == (ELam b2 e2 _ ) = b1 == b2 && e1  == e2
+  -- (EApp e1 e1' _) == (EApp e2 e2' _) = e1 == e2 && e1' == e2'
+  -- _               == _               = False
+
+data RExpr
+  = RVar Id
+  | RLam Id    RExpr
+  | RApp RExpr RExpr
+  deriving (Eq, Generic)
+
+rExpr :: Expr a -> RExpr
+rExpr (EVar x _)    = RVar x
+rExpr (ELam b e  _) = RLam (bindId b) (rExpr e )
+rExpr (EApp e e' _) = RApp (rExpr  e) (rExpr e')
+
 instance Eq (Expr a) where
-  (EVar x _)      == (EVar y _)      = x == y
-  (ELam b1 e1 _)  == (ELam b2 e2 _ ) = b1 == b2 && e1  == e2
-  (EApp e1 e1' _) == (EApp e2 e2' _) = e1 == e2 && e1' == e2'
-  _               == _               = False
+  e1 == e2 = rExpr e1 == rExpr e2
+
+instance Hashable RExpr
+
+instance Hashable (Expr a) where
+  hashWithSalt i = hashWithSalt i . rExpr
 
 -------------------------------------------------------------------------------------
 -- | Pretty Printing
@@ -141,6 +166,7 @@ instance Tagged Eqn where
   tag (AlphEq x) = x
   tag (BetaEq x) = x
   tag (DefnEq x) = x
+  tag (TrnsEq x) = x
 
 instance Tagged Bind where
   tag (Bind _   x) = x

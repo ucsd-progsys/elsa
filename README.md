@@ -41,9 +41,14 @@ let zero = \f x -> x
 
 eval id_zero :
   id zero
-  =d> (\x -> x) (\f x -> x)
-  =b> (\f x -> x)
-  =d> zero
+  =d> (\x -> x) (\f x -> x)   -- expand definitions
+  =a> (\z -> z) (\f x -> x)   -- alpha rename 
+  =b> (\f x -> x)             -- beta reduce
+  =d> zero                    -- expand definitions
+
+eval id_zero_tr : 
+  id zero  
+  =*> zero                    -- transitive reductions
 ```
 
 When you run `elsa` on the above, you should get the following output:
@@ -51,7 +56,7 @@ When you run `elsa` on the above, you should get the following output:
 ```bash
 $ elsa ex1.lc
 
-OK id_zero.
+OK id_zero, id_zero_tr.
 ```
 
 ## Partial Evaluation
@@ -163,6 +168,7 @@ with a `<step>`
 <step>      ::= =a>   -- alpha equivalence
                 =b>   -- beta  equivalence
                 =d>   -- def   equivalence
+                =*>   -- trans equivalence
 ```
 
 
@@ -178,3 +184,6 @@ Furthermore, a `step` of the form
 * `t =a> t'` is valid if `t` and `t'` are equivalent up to **alpha-renaming**,
 * `t =b> t'` is valid if `t` **beta-reduces** to `t'` in a single step,
 * `t =d> t'` is valid if `t` and `t'` are identical after **let-expansion**.
+* `t =d> t'` is valid if `t` and `t'` are in the reflexive, transitive closure 
+             of the union of the above three relations.
+
