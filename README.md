@@ -16,8 +16,8 @@ For example, `elsa` programs look like:
 
 ```haskell
 -- id_0.lc
-id   = \x -> x
-zero = \f x -> x
+let id   = \x -> x
+let zero = \f x -> x
 
 eval id_zero :
   id zero
@@ -42,9 +42,9 @@ still be further reduced:
 
 ```haskell
 -- succ_1_bad.lc
-one  = \f x -> f x
-two  = \f x -> f (f x)
-incr = \n f x -> f (n f x)
+let one  = \f x -> f x
+let two  = \f x -> f (f x)
+let incr = \n f x -> f (n f x)
 
 eval succ_one :
   incr one
@@ -68,9 +68,9 @@ You can _fix_ the error by completing the reduction
 
 ```haskell
 -- succ_1.lc
-one  = \f x -> f x
-two  = \f x -> f (f x)
-incr = \n f x -> f (n f x)
+let one  = \f x -> f x
+let two  = \f x -> f (f x)
+let incr = \n f x -> f (n f x)
 
 eval succ_one :
   incr one
@@ -85,8 +85,8 @@ Similarly, `elsa` rejects the following program,
 
 ```haskell
 -- id_0_bad.lc
-id   = \x -> x
-zero = \f x -> x
+let id   = \x -> x
+let zero = \f x -> x
 
 eval id_zero :
   id zero
@@ -155,6 +155,6 @@ A `reduction` of the form `t_1 s_1 t_2 s_2 ... t_n` is **valid** if
 
 Furthermore, a `step` of the form  
 
-* `t =a> t'` is valid if `t` and `t'` are equivalent up to alpha-renaming,
-* `t =b> t'` is valid if `t` beta-reduces to `t'` in a single step,
-* `t =d> t'` is valid if `t` and `t'` are identical after def expansion.
+* `t =a> t'` is valid if `t` and `t'` are equivalent up to **alpha-renaming**,
+* `t =b> t'` is valid if `t` **beta-reduces** to `t'` in a single step,
+* `t =d> t'` is valid if `t` and `t'` are identical after **let-expansion**.
