@@ -3,7 +3,6 @@
 `elsa` is a tiny language designed to build
 intuition about how the Lambda Calculus, or
 more generally, _computation-by-substitution_ works.
-
 Rather than the usual interpreter that grinds
 lambda terms down to values, `elsa` aims to be
 a light-weight _proof checker_ that determines
