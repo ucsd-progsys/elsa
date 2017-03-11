@@ -1,18 +1,27 @@
 name:                elsa
 version:             0.1.0.0
 synopsis:            A tiny language for understanding the lambda-calculus
+description:         elsa is a small proof checker for verifying sequences of 
+                     reductions of lambda-calculus terms. The goal is to help
+                     students build up intuition about lambda-terms, alpha-equivalence,
+                     beta-reduction, and in general, the notion of computation
+                     by substitution.
 license:             MIT
 license-file:        LICENSE
 author:              Ranjit Jhala
 maintainer:          jhala@cs.ucsd.edu
 category:            Language
+Homepage:            http://github.com/ucsd-progsys/elsa 
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
+Source-Repository head
+  Type:        git
+  Location:    https://github.com/ucsd-progsys/elsa/
 
 Library
-  ghc-options:         -W -threaded
+  ghc-options:        -W 
   exposed-modules:    Language.Elsa.Types,
                       Language.Elsa.Eval,
                       Language.Elsa.Parser,
@@ -21,7 +30,7 @@ Library
   Default-Extensions: OverloadedStrings
 
   -- other-extensions:
-  build-depends:       base,
+  build-depends:       base >= 4 && < 5,
                        array,
                        mtl,
                        megaparsec,
