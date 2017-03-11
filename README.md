@@ -101,7 +101,6 @@ $ elsa ex4.lc
 
 ex4.lc:7:5-20: id_zero has an invalid beta-reduction
 
-```
    7  |   =b> (\f x -> x)
           ^^^^^^^^^^^^^^^
 ```
