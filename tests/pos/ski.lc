@@ -1,0 +1,18 @@
+let S = \x y z -> x z (y z)
+let K = \x y -> x
+let I = \x -> x
+
+eval sks_i :
+  S K S
+  =d> (\x y z -> x z (y z)) (\x y -> x) (\x y z -> x z (y z))
+  =b> (\ y z -> (\x y -> x) z (y z)) (\x y z -> x z (y z))
+  =a> (\ y z -> (\x y -> x) z (y z)) (\a b c -> a c (b c))
+  =b> (\z -> (\x y -> x) z ((\a b c -> a c (b c)) z))
+  =b> (\z -> (\y -> z) ((\a b c -> a c (b c)) z))
+  =b> (\z -> z)
+  =a> (\x -> x)
+  =d> I
+
+  
+eval sks_i_trans :
+  S K S =*> I
