@@ -53,6 +53,7 @@ step g n e (Step k e')
 isEq :: Eqn a -> Env a -> Expr a -> Expr a -> Bool
 isEq (AlphEq _) = isAlphEq
 isEq (BetaEq _) = isBetaEq
+isEq (UnBeta _) = isUnBeta
 isEq (DefnEq _) = isDefnEq
 isEq (TrnsEq _) = isTrnsEq
 
@@ -123,8 +124,10 @@ fresh = do
 -- | Beta Reduction
 --------------------------------------------------------------------------------
 isBetaEq :: Env a -> Expr a -> Expr a -> Bool
-isBetaEq _ e1 e2 = or [ e1' == e2  | e1' <- betas e1 ] ||
-                   or [ e1  == e2' | e2' <- betas e2 ]
+isBetaEq _ e1 e2 = or [ e1' == e2  | e1' <- betas e1 ]
+
+isUnBeta :: Env a -> Expr a -> Expr a -> Bool
+isUnBeta g e1 e2 = isBetaEq g e2 e1
 
 isNormal :: Env a -> Expr a -> Bool
 isNormal g = null . betas . (`subst` g)

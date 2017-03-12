@@ -137,6 +137,7 @@ step = Step <$> eqn <*> expr
 eqn :: Parser SEqn
 eqn =  try (withSpan' (symbol "=a>" >> return AlphEq))
    <|> try (withSpan' (symbol "=b>" >> return BetaEq))
+   <|> try (withSpan' (symbol "<b=" >> return UnBeta))
    <|> try (withSpan' (symbol "=d>" >> return DefnEq))
    <|>     (withSpan' (symbol "=*>" >> return TrnsEq))
 

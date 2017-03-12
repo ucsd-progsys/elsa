@@ -1,0 +1,11 @@
+
+let Y = \f -> (\x -> f (x x)) (\y -> f (y y))
+
+eval fix :
+  Y F
+  =d> (\f -> (\x -> f (x x)) (\y -> f (y y))) F
+  =b> (\x -> F (x x)) (\y -> F (y y))
+  =b> F ((\y -> F (y y)) (\y -> F (y y)))
+  =a> F ((\x -> F (x x)) (\y -> F (y y)))
+  <b= F ((\f -> (\x -> f (x x)) (\y -> f (y y))) F)
+  =d> F (Y F)

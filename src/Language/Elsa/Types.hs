@@ -82,6 +82,7 @@ data Step a
 data Eqn a
   = AlphEq a
   | BetaEq a
+  | UnBeta a
   | DefnEq a
   | TrnsEq a
   deriving (Eq, Show)
@@ -98,7 +99,7 @@ data Expr a
 
 instance Show (Expr a) where
   show = pprint
-  
+
 instance Eq (Bind a) where
   b1 == b2 = bindId b1 == bindId b2
 
@@ -165,6 +166,7 @@ class Tagged t where
 instance Tagged Eqn where
   tag (AlphEq x) = x
   tag (BetaEq x) = x
+  tag (UnBeta x) = x
   tag (DefnEq x) = x
   tag (TrnsEq x) = x
 
