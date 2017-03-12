@@ -1,21 +1,24 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Language.Elsa.Runner where
+module Language.Elsa.Runner
+  ( topMain
+  , runElsa
+  , runElsaId
+  ) where
 
 import Data.List            (intercalate)
 import Data.Maybe           (mapMaybe)
-import Control.Monad        (when)
+import Control.Monad        (when, void)
 import Control.Exception
 import System.IO
 import System.Exit
 import System.Environment   (getArgs)
-import System.FilePath      -- (takeDirectory, takeFileName)
-import System.Directory     -- (takeDirectory, takeFileName)
-import Language.Elsa.Parser (parse)
-import Language.Elsa.Types  (successes, resultError)
+import System.FilePath
+import System.Directory
+import Language.Elsa.Parser
+import Language.Elsa.Types
 import Language.Elsa.UX
-import Language.Elsa.Eval   (elsa)
-
+import Language.Elsa.Eval
 
 topMain:: IO ()
 topMain = do
@@ -45,8 +48,8 @@ modeWriter Server  f s = do createDirectoryIfMissing True jsonDir
 
 runElsa :: Mode -> FilePath -> Text -> IO ()
 runElsa mode f s = do
-  let rs  = elsa (parse f s)
-  let es  = mapMaybe resultError rs
+  let rs = elsa (parse f s)
+  let es = mapMaybe resultError rs
   when (null es && mode == Cmdline) (putStrLn (okMessage rs))
   exitErrors mode f es
 
@@ -60,3 +63,16 @@ getSrcFile = do
     ["--server", f] -> return (Server,  f)
     [f]             -> return (Cmdline, f)
     _               -> error "Please run with a single file as input"
+
+
+--------------------------------------------------------------------------------
+runElsaId :: FilePath -> Id -> IO (Maybe (Result ()))
+--------------------------------------------------------------------------------
+runElsaId f x = ((`runElsa1` x) <$> parseFile f)
+                  `catch`
+                     (\(_ :: [UserError]) -> return Nothing)
+
+runElsa1 :: Elsa a -> Id -> Maybe (Result ())
+runElsa1 p x = case elsaOn (== x) p of
+                 [r] -> Just (void r)
+                 _   -> Nothing

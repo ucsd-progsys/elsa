@@ -1,4 +1,7 @@
-module Language.Elsa.Parser ( parse, parseFile ) where
+module Language.Elsa.Parser
+  ( parse
+  , parseFile
+  ) where
 
 import           Control.Monad (void)
 import           Text.Megaparsec hiding (parse)

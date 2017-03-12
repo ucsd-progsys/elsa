@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Language.Elsa.Eval where
+module Language.Elsa.Eval (elsa, elsaOn) where
 
 import qualified Data.HashMap.Strict  as M
 import qualified Data.HashSet         as S
@@ -9,12 +9,23 @@ import           Data.Maybe           (isJust, maybeToList)
 import           Language.Elsa.Types
 import           Language.Elsa.Utils  (qPushes, qInit, qPop, fromEither)
 
+
+
 --------------------------------------------------------------------------------
 elsa :: Elsa a -> [Result a]
 --------------------------------------------------------------------------------
-elsa p = case mkEnv (defns p) of
-           Left err -> [err]
-           Right g  -> [result g e | e <- evals p]
+elsa = elsaOn (const True)
+
+--------------------------------------------------------------------------------
+elsaOn :: (Id -> Bool) -> Elsa a -> [Result a]
+--------------------------------------------------------------------------------
+elsaOn cond p =
+  case mkEnv (defns p) of
+    Left err -> [err]
+    Right g  -> [result g e | e <- evals p, check e ]
+  where
+    check = cond . bindId . evName
+
 
 result :: Env a -> Eval a -> Result a
 result g e = fromEither (eval g e)
