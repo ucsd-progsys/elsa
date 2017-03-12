@@ -143,7 +143,7 @@ instance PPrint [Bind a] where
 instance PPrint (Expr a) where
   pprint (EVar x _)     = x
   pprint (EApp e1 e2 _) = printf "(%s %s)" (pprint e1) (pprint e2)
-  pprint e@(ELam {})    = printf "\\%s -> %s" (pprint xs) (pprint body)
+  pprint e@(ELam {})    = printf "(\\%s -> %s)" (pprint xs) (pprint body)
     where
       (xs, body)        = bkLam e
 

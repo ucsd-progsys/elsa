@@ -8,8 +8,7 @@ import qualified Data.List            as L
 import           Control.Monad.State
 import           Data.Maybe           (mapMaybe, isJust, maybeToList)
 import           Language.Elsa.Types
-import           Language.Elsa.Utils  (qPushes, qInit, qPop, fromEither)
-
+import           Language.Elsa.Utils  (traceShow, qPushes, qInit, qPop, fromEither)
 
 --------------------------------------------------------------------------------
 elsa :: Elsa a -> [Result a]
@@ -196,7 +195,7 @@ isIn = S.member . bindId
 isNormEq :: Env a -> Expr a -> Expr a -> Bool
 isNormEq g e1 e2 = isEquiv g e1' e2
   where
-    e1'          = evalNO (canon g e1)
+    e1'          = traceShow ("evalNO" ++ show e1) $ evalNO (traceShow "CANON" $ canon g e1)
 
 -- | normal-order reduction
 evalNO :: Expr a -> Expr a
@@ -218,7 +217,7 @@ evalCBN (EApp e1 e2 l) = case evalCBN e1 of
 bSubst :: Expr a -> Id -> Expr a -> Expr a
 bSubst e x e' = subst e (M.singleton x e'')
   where
-    e''       = alphaShift n e'
+    e''       = e' -- alphaShift n e'
     n         = 1 + maximum (0 : mapMaybe isAId vs)
     vs        = S.toList (freeVars e')
 

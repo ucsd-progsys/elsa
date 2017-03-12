@@ -37,7 +37,11 @@ handleIO :: FilePath -> IOException -> IO (Either String a)
 handleIO f e = return . Left $ "Warning: Couldn't open " <> f <> ": " <> show e
 
 traceShow :: (Show a) => String -> a -> a
-traceShow msg x = trace (printf "TRACE: %s = %s" msg (show x)) x
+traceShow msg x
+  | False
+  = trace (printf "TRACE: %s = %s" msg (show x)) x
+  | otherwise 
+  = x
 
 safeHead :: a -> [a] -> a
 safeHead def []    = def
