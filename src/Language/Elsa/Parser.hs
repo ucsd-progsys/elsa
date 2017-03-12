@@ -142,7 +142,9 @@ eqn =  try (withSpan' (symbol "=a>" >> return AlphEq))
    <|> try (withSpan' (symbol "=b>" >> return BetaEq))
    <|> try (withSpan' (symbol "<b=" >> return UnBeta))
    <|> try (withSpan' (symbol "=d>" >> return DefnEq))
-   <|>     (withSpan' (symbol "=*>" >> return TrnsEq))
+   <|> try (withSpan' (symbol "=*>" >> return TrnsEq))
+   <|> try (withSpan' (symbol "<*=" >> return UnTrEq))
+   <|>     (withSpan' (symbol "=~>" >> return NormEq))
 
 expr :: Parser SExpr
 expr =  try lamExpr

@@ -3,7 +3,7 @@ extra-package-dbs: []
 packages:
 - '.'
 extra-deps:
-- clock-0.7.2
 - dequeue-0.1.12
-- text-1.2.2.1
+# - clock-0.7.2
+# - text-1.2.2.1
 resolver: lts-5.9

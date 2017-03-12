@@ -4,11 +4,11 @@ module Language.Elsa.Eval (elsa, elsaOn) where
 
 import qualified Data.HashMap.Strict  as M
 import qualified Data.HashSet         as S
+import qualified Data.List            as L
 import           Control.Monad.State
-import           Data.Maybe           (isJust, maybeToList)
+import           Data.Maybe           (mapMaybe, isJust, maybeToList)
 import           Language.Elsa.Types
 import           Language.Elsa.Utils  (qPushes, qInit, qPop, fromEither)
-
 
 
 --------------------------------------------------------------------------------
@@ -67,17 +67,18 @@ isEq (BetaEq _) = isBetaEq
 isEq (UnBeta _) = isUnBeta
 isEq (DefnEq _) = isDefnEq
 isEq (TrnsEq _) = isTrnsEq
+isEq (UnTrEq _) = isUnTrEq
+isEq (NormEq _) = isNormEq
+
 
 --------------------------------------------------------------------------------
 -- | Transitive Reachability
 --------------------------------------------------------------------------------
 isTrnsEq :: Env a -> Expr a -> Expr a -> Bool
-isTrnsEq g e1 e2 = isJust (findTrans (isEquiv g e2) (canon e1))
-  where
-    canon        = alphaNormal . (`subst` g)
+isTrnsEq g e1 e2 = isJust (findTrans (isEquiv g e2) (canon g e1))
 
-isEquiv :: Env a -> Expr a -> Expr a -> Bool
-isEquiv g e1 e2 = isAlphEq g (subst e1 g) (subst e2 g)
+isUnTrEq :: Env a -> Expr a -> Expr a -> Bool
+isUnTrEq g e1 e2 = isTrnsEq g e2 e1
 
 findTrans :: (Expr a -> Bool) -> Expr a -> Maybe (Expr a)
 findTrans p e = go S.empty (qInit e)
@@ -103,7 +104,10 @@ isAlphEq :: Env a -> Expr a -> Expr a -> Bool
 isAlphEq _ e1 e2 = alphaNormal e1 == alphaNormal e2
 
 alphaNormal :: Expr a -> Expr a
-alphaNormal e = evalState (normalize M.empty e) 0
+alphaNormal = alphaShift 0
+
+alphaShift :: Int -> Expr a -> Expr a
+alphaShift n e = evalState (normalize M.empty e) n
 
 type AlphaM a = State Int a
 
@@ -129,7 +133,18 @@ fresh :: AlphaM Id
 fresh = do
   n <- get
   put (n + 1)
-  return ("$x" ++ show n)
+  return (newAId n)
+
+newAId :: Int -> Id
+newAId n = aId ++ show n
+
+isAId :: Id -> Maybe Int
+isAId x
+  | L.isPrefixOf aId x = Just . read . drop 2 $ x
+  | otherwise          = Nothing
+
+aId :: String
+aId = "$x"
 
 --------------------------------------------------------------------------------
 -- | Beta Reduction
@@ -175,7 +190,40 @@ isIn :: Bind a -> S.HashSet Id -> Bool
 isIn = S.member . bindId
 
 --------------------------------------------------------------------------------
--- | Free Variables and Substitution
+-- | Evaluation to Normal Form
+--   http://www.cs.cornell.edu/courses/cs6110/2014sp/Handouts/Sestoft.pdf
+--------------------------------------------------------------------------------
+isNormEq :: Env a -> Expr a -> Expr a -> Bool
+isNormEq g e1 e2 = isEquiv g e1' e2
+  where
+    e1'          = evalNO (canon g e1)
+
+-- | normal-order reduction
+evalNO :: Expr a -> Expr a
+evalNO e@(EVar {})    = e
+evalNO (ELam b e l)   = ELam b (evalNO e) l
+evalNO (EApp e1 e2 l) = case evalCBN e1 of
+                          ELam b e1' _ -> evalNO (bSubst e1' (bindId b) e2)
+                          e1'          -> EApp (evalNO e1') (evalNO e2) l
+
+-- | call-by-name reduction
+evalCBN :: Expr a -> Expr a
+evalCBN e@(EVar {}) = e
+evalCBN e@(ELam {}) = e
+evalCBN (EApp e1 e2 l) = case evalCBN e1 of
+                          ELam b e1' _ -> evalCBN (bSubst e1' (bindId b) e2)
+                          e1'          -> EApp e1' e2 l
+
+-- | Force alpha-renaming to ensure capture avoiding subst
+bSubst :: Expr a -> Id -> Expr a -> Expr a
+bSubst e x e' = subst e (M.singleton x e'')
+  where
+    e''       = alphaShift n e'
+    n         = 1 + maximum (0 : mapMaybe isAId vs)
+    vs        = S.toList (freeVars e')
+
+--------------------------------------------------------------------------------
+-- | General Helpers
 --------------------------------------------------------------------------------
 freeVars :: Expr a -> S.HashSet Id
 freeVars = S.fromList . M.keys . freeVars'
@@ -192,9 +240,15 @@ subst (ELam b e z)   su = ELam b (subst e su') z
   where
     su'                 = M.delete (bindId b) su
 
+canon :: Env a -> Expr a -> Expr  a
+canon g = alphaNormal . (`subst` g)
+
+isEquiv :: Env a -> Expr a -> Expr a -> Bool
+isEquiv g e1 e2 = isAlphEq g (subst e1 g) (subst e2 g)
 --------------------------------------------------------------------------------
 -- | Error Cases
 --------------------------------------------------------------------------------
+
 errInvalid :: Bind a -> Expr a -> Eqn a -> Expr a -> Result a
 errInvalid b _ eqn _ = Invalid b (tag eqn)
 

@@ -86,6 +86,8 @@ data Eqn a
   | UnBeta a
   | DefnEq a
   | TrnsEq a
+  | UnTrEq a
+  | NormEq a
   deriving (Eq, Show)
 
 data Bind a
@@ -170,6 +172,8 @@ instance Tagged Eqn where
   tag (UnBeta x) = x
   tag (DefnEq x) = x
   tag (TrnsEq x) = x
+  tag (UnTrEq x) = x
+  tag (NormEq x) = x
 
 instance Tagged Bind where
   tag (Bind _   x) = x

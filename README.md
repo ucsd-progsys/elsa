@@ -9,13 +9,13 @@ a light-weight _proof checker_ that determines
 whether, under a given sequence of definitions,
 a particular term _reduces to_ to another.
 
-## Online Demo 
+## Online Demo
 
 You can try `elsa` online at [this link](http://goto.ucsd.edu:8095/index.html)
 
-## Install 
+## Install
 
-You can locally build and run `elsa` by 
+You can locally build and run `elsa` by
 
 1. Installing [stack](https://www.haskellstack.org)
 2. Cloning this repo
@@ -23,14 +23,14 @@ You can locally build and run `elsa` by
 
 That is, to say
 
-```bash 
+```bash
 $ curl -sSL https://get.haskellstack.org/ | sh
 $ git clone https://github.com/ucsd-progsys/elsa.git
-$ cd elsa 
+$ cd elsa
 $ stack install
 ```
 
-## Overview 
+## Overview
 
 `elsa` programs look like:
 
@@ -42,11 +42,11 @@ let zero = \f x -> x
 eval id_zero :
   id zero
   =d> (\x -> x) (\f x -> x)   -- expand definitions
-  =a> (\z -> z) (\f x -> x)   -- alpha rename 
+  =a> (\z -> z) (\f x -> x)   -- alpha rename
   =b> (\f x -> x)             -- beta reduce
   =d> zero                    -- expand definitions
 
-eval id_zero_tr : 
+eval id_zero_tr :
   id zero  
   =*> zero                    -- transitive reductions
 ```
@@ -102,7 +102,7 @@ eval succ_one :
   =d> (\n f x -> f (n f x)) (\f x -> f x)
   =b> \f x -> f ((\f x -> f x) f x)
   =b> \f x -> f ((\x -> f x) x)
-  =b> \f x -> f (f x)                 -- beta-reduce the above 
+  =b> \f x -> f (f x)                 -- beta-reduce the above
   =d> two                             -- optional
 ```
 
@@ -169,6 +169,7 @@ with a `<step>`
                 =b>   -- beta  equivalence
                 =d>   -- def   equivalence
                 =*>   -- trans equivalence
+                =~>   -- normalizes to
 ```
 
 
@@ -184,6 +185,9 @@ Furthermore, a `step` of the form
 * `t =a> t'` is valid if `t` and `t'` are equivalent up to **alpha-renaming**,
 * `t =b> t'` is valid if `t` **beta-reduces** to `t'` in a single step,
 * `t =d> t'` is valid if `t` and `t'` are identical after **let-expansion**.
-* `t =d> t'` is valid if `t` and `t'` are in the reflexive, transitive closure 
+* `t =*> t'` is valid if `t` and `t'` are in the reflexive, transitive closure
              of the union of the above three relations.
+* `t =~> t'` is valid if `t` [normalizes to][normalform] `t'`.
 
+[normalform]: http://dl.acm.org/citation.cfm?id=860276
+[normalform-pdf]: http://www.cs.cornell.edu/courses/cs6110/2014sp/Handouts/Sestoft.pdf
