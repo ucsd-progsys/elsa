@@ -1,0 +1,49 @@
+
+let id   = \x -> x
+let zero = \f x -> x
+let one  = \f x -> f x
+let two  = \f x -> f (f x)
+let inc  = \n f x -> f (n f x)
+let comp = \f g x -> f (g x)
+let incc = comp inc inc
+
+eval inc2_zero :
+  incc zero
+  =d> comp inc inc zero
+  =d> (\f g x -> f (g x)) inc inc zero
+  =b> (\g x -> inc (g x)) inc zero
+  =b> (\x -> inc (inc x)) zero
+  =b> inc (inc zero)
+  =d> inc ((\n f x -> f (n f x)) zero)
+  =b> inc ((\f x -> f (zero f x)))
+  =d> inc ((\f x -> f ((\f x -> x) f x)))
+  =b> inc ((\f x -> f ((\x -> x) x)))
+  =b> inc (\f x -> f x)
+  =d> (\n f x -> f (n f x)) (\f x -> f x)
+  =b> (\f x -> f (((\f x -> f x) f x)) )
+  =b> (\f x -> f (((\x -> f x) x)) )
+  =b> (\f x -> f (((f x))) )
+  =d> two
+
+eval id_zero :
+  id pig
+  =d> (\x -> x)     pig
+  =a> (\b -> b)     pig
+  =a> (\pig -> pig) pig
+  =b> pig
+
+eval succ_zero :
+  inc zero
+  =d> (\n f x -> f (n f x)) (\f x -> x)
+  =b> \f x -> f ((\f x -> x) f x)
+  =b> \f x -> f ((\x -> x) x)
+  =b> \f x -> f x
+  =d> one
+
+eval succ_one :
+  inc one
+  =d> (\n f x -> f (n f x)) (\f x -> f x)
+  =b> \f x -> f ((\f x -> f x) f x)
+  =b> \f x -> f ((\x -> f x) x)
+  =b> \f x -> f (f x)
+  =d> two

@@ -1,0 +1,6 @@
+
+eval beta_capture :
+     (\x y -> (\x -> x) y x) (y (\x -> x))
+ =a> (\x z -> (\a -> a) z x) (y (\b -> b))
+ =b> (\z -> (\a -> a) z (y (\b -> b)))
+ =b> (\z -> z (y (\b -> b)))

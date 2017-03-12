@@ -1,0 +1,27 @@
+let true  = \x y -> x
+let false = \x y -> y
+let ite   = \b x y -> b x y
+let not   = \b x y -> b y x
+let and   = \b1 b2 -> ite b1 b2 false
+let or    = \b1 b2 -> ite b1 true b2
+
+eval not_true :
+  not true
+  =d> (\b x y -> b y x) (\x y -> x)
+  =a> (\b x y -> b y x) (\a b -> a)
+  =b> (\x y -> (\a b -> a) y x)
+  =b> (\x y -> (\b -> y) x)
+  =b> (\x y -> y)
+  =d> false
+
+eval not_true_star :
+  not true
+  =*> false
+
+eval and_true_false :
+  and true false
+  =*> false
+
+eval or_false_true :
+  or false true
+  =*> true
