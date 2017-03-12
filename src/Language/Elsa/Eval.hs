@@ -78,7 +78,6 @@ findTrans p e = go S.empty (qInit e)
              then return e
              else go (S.insert e seen) (qPushes q (betas e))
 
-
 --------------------------------------------------------------------------------
 -- | Definition Equivalence
 --------------------------------------------------------------------------------
@@ -124,7 +123,8 @@ fresh = do
 -- | Beta Reduction
 --------------------------------------------------------------------------------
 isBetaEq :: Env a -> Expr a -> Expr a -> Bool
-isBetaEq _ e1 e2 = or [ e1' == e2 | e1' <- betas e1]
+isBetaEq _ e1 e2 = or [ e1' == e2  | e1' <- betas e1 ] ||
+                   or [ e1  == e2' | e2' <- betas e2 ]
 
 isNormal :: Env a -> Expr a -> Bool
 isNormal g = null . betas . (`subst` g)
