@@ -12,3 +12,7 @@ eval sks_i :
   =b> (\z -> z)
   =a> (\x -> x)
   =d> I
+
+  
+eval sks_i_trans :
+  S K S =*> I
