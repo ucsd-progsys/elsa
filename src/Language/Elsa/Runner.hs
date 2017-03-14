@@ -15,6 +15,7 @@ import System.Exit
 import System.Environment   (getArgs)
 import System.FilePath
 import System.Directory
+import System.Timeout
 import Language.Elsa.Parser
 import Language.Elsa.Types
 import Language.Elsa.UX
@@ -24,7 +25,25 @@ topMain:: IO ()
 topMain = do
   (m, f) <- getSrcFile
   s      <- readFile f
-  runElsa m f s `catch` exitErrors m f
+  res    <- timeout (timeLimit * 10 ^ 6) (runElsa m f s `catch` exitErrors m f)
+  case res of
+    Just z  -> return z
+    Nothing -> putStrLn timeMsg >> exitFailure
+
+timeLimit :: Int
+timeLimit = 10
+
+timeMsg :: String
+timeMsg = "Timed out after " ++ show timeLimit ++ " seconds."
+
+getSrcFile :: IO (Mode, Text)
+getSrcFile = do
+  args <- getArgs
+  case args of
+    ["--json"  , f] -> return (Json,    f)
+    ["--server", f] -> return (Server,  f)
+    [f]             -> return (Cmdline, f)
+    _               -> error "Please run with a single file as input"
 
 exitErrors :: Mode -> FilePath -> [UserError] -> IO ()
 exitErrors mode f es = esHandle mode (modeWriter mode f) resultExit es
@@ -46,7 +65,9 @@ modeWriter Server  f s = do createDirectoryIfMissing True jsonDir
                             jsonDir  = takeDirectory f </> ".elsa"
                             jsonFile = jsonDir </> addExtension (takeFileName f) ".json"
 
+---------------------------------------------------------------------------------------------------------
 runElsa :: Mode -> FilePath -> Text -> IO ()
+---------------------------------------------------------------------------------------------------------
 runElsa mode f s = do
   let rs = elsa (parse f s)
   let es = mapMaybe resultError rs
@@ -54,16 +75,6 @@ runElsa mode f s = do
   exitErrors mode f es
 
 okMessage rs = "OK " ++ intercalate ", " (successes rs) ++ "."
-
-getSrcFile :: IO (Mode, Text)
-getSrcFile = do
-  args <- getArgs
-  case args of
-    ["--json"  , f] -> return (Json,    f)
-    ["--server", f] -> return (Server,  f)
-    [f]             -> return (Cmdline, f)
-    _               -> error "Please run with a single file as input"
-
 
 --------------------------------------------------------------------------------
 runElsaId :: FilePath -> Id -> IO (Maybe (Result ()))

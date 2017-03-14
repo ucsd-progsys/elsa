@@ -1,0 +1,10 @@
+let U = (\u -> u u) (\w -> w w)
+
+eval uu_ok_in_two_steps : 
+  U U
+  =*> U U   
+
+eval diverge_no_normal_form : 
+  U U
+  =~> U U  
+
