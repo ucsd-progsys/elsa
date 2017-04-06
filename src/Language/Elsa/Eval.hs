@@ -171,18 +171,20 @@ beta (ELam (Bind x _) e _) e' = substCA e x e'
 beta _                    _   = Nothing
 
 substCA :: Expr a -> Id -> Expr a -> Maybe (Expr a)
-substCA e x e' = go [] e
+substCA e x e'           = go [] e
   where
     zs                   = freeVars e'
-    bnd bs zs            = or [ b `isIn` zs | b <- bs ]
+    bnd  bs zs           = or [ b `isIn` zs | b <- bs ]
     go bs e@(EVar y _)
       | y /= x           = Just e            -- different var, no subst
-      | bnd bs zs        = Nothing           -- same var, but free-var-captured
+      | bnd  bs zs       = Nothing           -- same var, but free-var-captured
       | otherwise        = Just e'           -- same var, but no capture
     go bs (EApp e1 e2 l) = do e1' <- go bs e1
                               e2' <- go bs e2
                               Just (EApp e1' e2' l)
-    go bs (ELam b e1  l) = do e1' <- go (b:bs) e1
+    go bs e@(ELam b e1  l)
+      | x == bindId b    = Just e            -- subst-var has been rebound
+      | otherwise        = do e1' <- go (b:bs) e1
                               Just (ELam b e1' l)
 
 isIn :: Bind a -> S.HashSet Id -> Bool

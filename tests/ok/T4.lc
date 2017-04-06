@@ -1,0 +1,18 @@
+-- https://github.com/ucsd-progsys/elsa/issues/4
+
+eval and_true_false_fixme:
+
+  (\x y -> ((\x y -> x) x) y)  thing FALSE
+
+  =b> (\y -> ((\x y -> x) thing) y) FALSE
+
+  =~> thing 
+
+
+eval and_true_false_ok:
+
+  (\x0 y0 -> ((\x1 y1 -> x1) x0) y0)  thing FALSE
+
+  =b> (\y0 -> ((\x1 y1 -> x1) thing) y0) FALSE
+
+  =~> thing 
