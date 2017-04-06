@@ -40,7 +40,7 @@ traceShow :: (Show a) => String -> a -> a
 traceShow msg x
   | False
   = trace (printf "TRACE: %s = %s" msg (show x)) x
-  | otherwise 
+  | otherwise
   = x
 
 safeHead :: a -> [a] -> a
