@@ -1,0 +1,31 @@
+let ZERO  = \f x -> x
+let ONE   = \f x -> f x
+let TWO   = \f x -> f (f x)
+let THREE = \f x -> f (f (f x))
+let FOUR  = \f x -> f (f (f (f x)))
+let FIVE  = \f x -> f (f (f (f (f x))))
+let SIX   = \f x -> f (f (f (f (f (f x)))))
+
+let TRUE  = \x y -> x 
+let FALSE = \x y -> y 
+
+let SUC   = \n f x -> f (n f x)
+
+let ADD   = \n m -> n SUC m
+
+let MUL   = \n m -> n (ADD m) ZERO 
+
+let ISZ   = \n -> n (\z -> FALSE) TRUE 
+
+let Y     = \f -> (\x -> f (x x)) (\y -> f (y y))
+
+let SUM   = Y (\f n -> ITE (ISZ n) ZERO (ADD n (f (DEC n))))
+
+eval sum_two :
+  SUM TWO 
+  =~> THREE 
+
+eval sum_three :
+  SUM THREE 
+  =~> SIX 
+
