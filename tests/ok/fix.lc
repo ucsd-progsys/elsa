@@ -73,3 +73,7 @@ eval fac_three :
   FAC THREE 
   =~> SIX 
 
+eval fac_four : 
+  FAC FOUR
+  =~> \f x -> f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f x)))))))))))))))))))))))
+
