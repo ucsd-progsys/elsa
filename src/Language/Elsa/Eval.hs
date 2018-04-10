@@ -220,8 +220,6 @@ bSubst :: Expr a -> Id -> Expr a -> Expr a
 bSubst e x e' = subst e (M.singleton x e'')
   where
     e''       = e' -- alphaShift n e'
-    n         = 1 + maximum (0 : mapMaybe isAId vs)
-    vs        = S.toList (freeVars e')
 
 --------------------------------------------------------------------------------
 -- | General Helpers
