@@ -4,7 +4,6 @@ import qualified Data.HashMap.Strict as M
 import qualified Data.List           as L
 import qualified Data.Dequeue        as Q
 import           Data.Hashable
-import           Data.Monoid
 import           Data.Char (isSpace)
 import           Control.Exception
 import           Text.Printf
