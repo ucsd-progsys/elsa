@@ -10,6 +10,8 @@ import           Text.Printf
 import           System.Directory
 import           System.FilePath
 import           Debug.Trace (trace)
+import           System.Console.ANSI
+
 
 groupBy :: (Eq k, Hashable k) => (a -> k) -> [a] -> [(k, [a])]
 groupBy f = M.toList . L.foldl' (\m x -> inserts (f x) x m) M.empty
@@ -74,3 +76,22 @@ qPop :: Queue a -> Maybe (a, Queue a)
 qPop (Q q) = case Q.popBack q of
                Nothing      -> Nothing
                Just (x, q') -> Just (x, Q q')
+
+
+data Mood = Happy | Sad 
+
+moodColor :: Mood -> Color
+moodColor Sad   = Red 
+moodColor Happy = Green
+
+wrapStars :: String -> String
+wrapStars msg = "\n**** " ++ msg ++ " " ++ replicate (74 - length msg) '*'
+
+withColor :: Color -> IO () -> IO ()
+withColor c act = do 
+  setSGR [ SetConsoleIntensity BoldIntensity, SetColor Foreground Vivid c]
+  act
+  setSGR [ Reset]
+
+colorStrLn :: Mood -> String -> IO ()
+colorStrLn c = withColor (moodColor c) . putStrLn
