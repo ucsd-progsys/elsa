@@ -11,7 +11,7 @@ a particular term _reduces to_ to another.
 
 ## Online Demo
 
-You can try `elsa` online at [this link](http://goto.ucsd.edu:8095/index.html)
+You can try `elsa` online at [this link](http://goto.ucsd.edu/elsa)
 
 ## Install
 
