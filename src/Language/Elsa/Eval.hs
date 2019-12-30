@@ -6,7 +6,7 @@ import qualified Data.HashMap.Strict  as M
 import qualified Data.HashSet         as S
 import qualified Data.List            as L
 import           Control.Monad.State
-import           Data.Maybe           (mapMaybe, isJust, maybeToList)
+import qualified Data.Maybe           as Mb -- (isJust, maybeToList)
 import           Language.Elsa.Types
 import           Language.Elsa.Utils  (traceShow, qPushes, qInit, qPop, fromEither)
 
@@ -74,7 +74,7 @@ isEq (NormEq _) = isNormEq
 -- | Transitive Reachability
 --------------------------------------------------------------------------------
 isTrnsEq :: Env a -> Expr a -> Expr a -> Bool
-isTrnsEq g e1 e2 = isJust (findTrans (isEquiv g e2) (canon g e1))
+isTrnsEq g e1 e2 = Mb.isJust (findTrans (isEquiv g e2) (canon g e1))
 
 isUnTrEq :: Env a -> Expr a -> Expr a -> Bool
 isUnTrEq g e1 e2 = isTrnsEq g e2 e1
@@ -137,8 +137,8 @@ fresh = do
 newAId :: Int -> Id
 newAId n = aId ++ show n
 
-isAId :: Id -> Maybe Int
-isAId x
+_isAId :: Id -> Maybe Int
+_isAId x
   | L.isPrefixOf aId x = Just . read . drop 2 $ x
   | otherwise          = Nothing
 
@@ -164,7 +164,7 @@ betas (EVar _ _)     = []
 betas (ELam b e z)   = [ ELam b e' z | e' <- betas e ]
 betas (EApp e1 e2 z) = [ EApp e1' e2 z | e1' <- betas e1 ]
                     ++ [ EApp e1 e2' z | e2' <- betas e2 ]
-                    ++ maybeToList (beta e1 e2)
+                    ++ Mb.maybeToList (beta e1 e2)
 
 beta :: Expr a -> Expr a -> Maybe (Expr a)
 beta (ELam (Bind x _) e _) e' = substCA e x e'
@@ -220,8 +220,6 @@ bSubst :: Expr a -> Id -> Expr a -> Expr a
 bSubst e x e' = subst e (M.singleton x e'')
   where
     e''       = e' -- alphaShift n e'
-    n         = 1 + maximum (0 : mapMaybe isAId vs)
-    vs        = S.toList (freeVars e')
 
 --------------------------------------------------------------------------------
 -- | General Helpers

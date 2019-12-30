@@ -1,15 +1,22 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Language.Elsa.Parser
   ( parse
   , parseFile
   ) where
 
-import           Control.Monad (void)
+import qualified Control.Exception          as Ex
+import           Control.Monad          (void)
 import           Text.Megaparsec hiding (parse)
-import           Text.Megaparsec.String
-import qualified Text.Megaparsec.Lexer as L
+import qualified Text.Megaparsec.Char.Lexer as L
+import           Text.Megaparsec.Char
+import           Text.Megaparsec.Stream ()
 import qualified Data.List as L
 import           Language.Elsa.Types
 import           Language.Elsa.UX
+import           Data.List.NonEmpty         as NE
+
+type Parser = Parsec SourcePos Text
 
 --------------------------------------------------------------------------------
 parse :: FilePath -> Text -> SElsa
@@ -18,14 +25,25 @@ parse = parseWith elsa
 
 parseWith  :: Parser a -> FilePath -> Text -> a
 parseWith p f s = case runParser (whole p) f s of
-                    Left err -> panic (show err) (posSpan . errorPos $ err)
+                    Left pErrs -> Ex.throw (mkErrors pErrs) -- panic (show err) (posSpan . NE.head . errorPos $ err)
                     Right e  -> e
 
-instance Located ParseError where
-  sourceSpan = posSpan . errorPos
 
-instance PPrint ParseError where
-  pprint = show
+mkErrors :: ParseErrorBundle Text SourcePos -> [UserError]
+mkErrors b = [ mkError (parseErrorPretty e) (sp b) | e <- NE.toList (bundleErrors b)]
+  where 
+    sp     = posSpan . pstateSourcePos . bundlePosState
+
+instance ShowErrorComponent SourcePos where
+  showErrorComponent = show
+ 
+
+-- panic msg sp = throw [Error msg sp]
+-- instance Located (ParseError SourcePos Text) where
+--  sourceSpan = posSpan . errorPos
+
+-- instance PPrint (ParseError SourcePos Text) where
+--   pprint = show
 
 --------------------------------------------------------------------------------
 parseFile :: FilePath -> IO SElsa
@@ -92,7 +110,7 @@ identifier = lexeme (p >>= check)
 
 identChar :: Parser Char
 identChar =  alphaNumChar
-         <|> oneOf "_#'"
+         <|> oneOf ['_', '#', '\'']
 
 -- | `binder` parses BareBind, used for let-binds and function parameters.
 binder :: Parser SBind
@@ -100,16 +118,16 @@ binder = uncurry Bind <$> identifier
 
 withSpan' :: Parser (SourceSpan -> a) -> Parser a
 withSpan' p = do
-  p1 <- getPosition
+  p1 <- getSourcePos
   f  <- p
-  p2 <- getPosition
+  p2 <- getSourcePos
   return (f (SS p1 p2))
 
 withSpan :: Parser a -> Parser (a, SourceSpan)
 withSpan p = do
-  p1 <- getPosition
+  p1 <- getSourcePos
   x  <- p
-  p2 <- getPosition
+  p2 <- getSourcePos
   return (x, SS p1 p2)
 
 --------------------------------------------------------------------------------

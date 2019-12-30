@@ -38,12 +38,9 @@ module Language.Elsa.UX
 
 import           Control.Exception
 import           Data.Typeable
-import           Data.Monoid
 import qualified Data.List as L
 import           Text.Printf (printf)
 import           Text.Megaparsec
-import           Text.Megaparsec.Pos
--- import           Text.JSON.Pretty
 import           Text.JSON hiding (Error)
 import           Language.Elsa.Utils
 
@@ -70,6 +67,9 @@ data SourceSpan = SS
   }
   deriving (Eq, Show)
 
+instance Semigroup SourceSpan where
+  x <> y = mappendSpan x y 
+
 instance Monoid SourceSpan where
   mempty  = junkSpan
   mappend = mappendSpan
@@ -94,10 +94,10 @@ spanInfo :: SourceSpan -> (FilePath, Int, Int, Int, Int)
 spanInfo s = (f s, l1 s, c1 s, l2 s, c2 s)
   where
     f      = spanFile
-    l1     = sourceLine   . ssBegin
-    c1     = sourceColumn . ssBegin
-    l2     = sourceLine   . ssEnd
-    c2     = sourceColumn . ssEnd
+    l1     = unPos . sourceLine   . ssBegin
+    c1     = unPos . sourceColumn . ssBegin
+    l2     = unPos . sourceLine   . ssEnd
+    c2     = unPos . sourceColumn . ssEnd
 
 --------------------------------------------------------------------------------
 -- | Source Span Extraction
@@ -263,8 +263,8 @@ jObj = JSObject . toJSObject
 
 instance JSON SourcePos where
   readJSON    = undefined
-  showJSON sp = jObj [ ("line"  , showJSON l)
-                     , ("column", showJSON c)
+  showJSON sp = jObj [ ("line"  , showJSON (unPos l))
+                     , ("column", showJSON (unPos c))
                      ]
     where
       l       = sourceLine   sp

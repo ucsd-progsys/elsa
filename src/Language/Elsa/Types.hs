@@ -7,7 +7,6 @@ module Language.Elsa.Types where
 
 import           GHC.Generics
 import           Text.Printf (printf)
-import           Data.Monoid
 import           Language.Elsa.UX
 import           Data.Maybe (mapMaybe)
 import           Data.Hashable

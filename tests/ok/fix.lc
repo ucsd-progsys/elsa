@@ -1,0 +1,79 @@
+
+--------------------------------------------------------------------------------
+-- Booleans
+--------------------------------------------------------------------------------
+
+let TRUE  = \x y -> x
+let FALSE = \x y -> y
+let ITE   = \b x y -> b x y
+let AND   = \b1 b2 -> ITE b1 b2 FALSE
+let OR    = \b1 b2 -> ITE b1 TRUE b2
+
+--------------------------------------------------------------------------------
+-- Numbers
+--------------------------------------------------------------------------------
+
+let ISZ   = \n -> n (\z -> FALSE) TRUE
+let ZERO  = \f x -> x
+let ONE   = \f x -> f x
+let TWO   = \f x -> f (f x)
+let THREE = \f x -> f (f (f x))
+let FOUR  = \f x -> f (f (f (f x)))
+let FIVE  = \f x -> f (f (f (f (f x))))
+let SIX   = \f x -> f (f (f (f (f (f x)))))
+
+
+--------------------------------------------------------------------------------
+-- Pairs
+--------------------------------------------------------------------------------
+
+let PAIR  = \x y b -> ITE b x y
+let FST   = \p     -> p TRUE
+let SND   = \p     -> p FALSE
+
+--------------------------------------------------------------------------------
+-- ARITHMETIC
+--------------------------------------------------------------------------------
+
+let SKIP1 = \f p -> PAIR TRUE (ITE (FST p) (f (SND p)) (SND p))
+let INCR  = \n f x -> f (n f x)
+let DECR  = \n   -> SND (n (SKIP1 INCR) (PAIR FALSE ZERO))
+let SUB   = \n m -> m DECR n
+let EQL   = \n m -> AND (ISZ (SUB n m)) (ISZ (SUB m n))
+let ADD   = \n m -> n INCR m
+let MUL   = \n m -> n (ADD m) ZERO 
+let ISZ   = \n -> n (\z -> FALSE) TRUE 
+
+--------------------------------------------------------------------------------
+-- RECURSION 
+--------------------------------------------------------------------------------
+
+let Y     = \f -> (\x -> f (x x)) (\y -> f (y y))
+
+let SUM   = Y (\f n -> ITE (ISZ n) ZERO (ADD n (f (DECR n))))
+let FAC   = Y (\f n -> ITE (ISZ n) ONE  (MUL n (f (DECR n))))
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+eval sum_two :
+  SUM TWO 
+  =~> THREE 
+
+eval sum_three :
+  SUM THREE 
+  =~> SIX 
+
+eval fac_three : 
+  FAC TWO 
+  =~> TWO 
+
+eval fac_three : 
+  FAC THREE 
+  =~> SIX 
+
+eval fac_four : 
+  FAC FOUR
+  =~> \f x -> f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f x)))))))))))))))))))))))
+

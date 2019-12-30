@@ -20,6 +20,7 @@ import Language.Elsa.Parser
 import Language.Elsa.Types
 import Language.Elsa.UX
 import Language.Elsa.Eval
+import qualified Language.Elsa.Utils as Utils
 
 topMain:: IO ()
 topMain = do
@@ -49,14 +50,21 @@ exitErrors :: Mode -> FilePath -> [UserError] -> IO ()
 exitErrors mode f es = esHandle mode (modeWriter mode f) resultExit es
 
 resultExit :: [UserError] -> IO a
-resultExit [] = exitSuccess
-resultExit _  = exitFailure
+resultExit [] = say Utils.Happy >> exitSuccess
+resultExit _  = say Utils.Sad   >> exitFailure
+
+say :: Utils.Mood -> IO () 
+say m = Utils.colorStrLn m (Utils.wrapStars (msg m))
+  where 
+    msg Utils.Happy = "OK"
+    msg Utils.Sad   = "Errors found!"
+
 
 esHandle :: Mode -> (Text -> IO ()) -> ([UserError] -> IO a) -> [UserError] -> IO a
 esHandle mode writer exitF es = renderErrors mode es >>= writer >> exitF es
 
 modeWriter :: Mode -> FilePath -> Text -> IO ()
-modeWriter Cmdline _ s = hPutStrLn stderr s
+modeWriter Cmdline _ s = hPutStrLn stderr s 
 modeWriter Json    _ s = hPutStrLn stderr s
 modeWriter Server  f s = do createDirectoryIfMissing True jsonDir
                             writeFile jsonFile s
@@ -64,6 +72,7 @@ modeWriter Server  f s = do createDirectoryIfMissing True jsonDir
                          where
                             jsonDir  = takeDirectory f </> ".elsa"
                             jsonFile = jsonDir </> addExtension (takeFileName f) ".json"
+
 
 ---------------------------------------------------------------------------------------------------------
 runElsa :: Mode -> FilePath -> Text -> IO ()

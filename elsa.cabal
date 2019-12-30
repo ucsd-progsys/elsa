@@ -1,5 +1,5 @@
 name:                elsa
-version:             0.2.0.0
+version:             0.2.1.2
 synopsis:            A tiny language for understanding the lambda-calculus
 description:         elsa is a small proof checker for verifying sequences of
                      reductions of lambda-calculus terms. The goal is to help
@@ -33,7 +33,8 @@ Library
   build-depends:       base >= 4 && < 5,
                        array,
                        mtl,
-                       megaparsec,
+                       megaparsec >= 7.0.4,
+                       ansi-terminal,
                        hashable,
                        unordered-containers,
                        directory,
