@@ -189,5 +189,47 @@ Furthermore, a `step` of the form
              of the union of the above three relations.
 * `t =~> t'` is valid if `t` [normalizes to][normalform] `t'`.
 
+
+(Due to Michael Borkowski)
+
+The difference between `=*>` and `=~>` is as follows.
+
+* `t =*> t'` is _any_ sequence of zero or more steps from `t` to `t'`. 
+  So if you are working forwards from the start, backwards from the end, 
+  or a combination of both, you could use `=*>` as a quick check to see 
+  if you're on the right track. 
+
+* `t =~> t'` says that `t` reduces to `t'` in zero or more steps **and** 
+   that `t'` is in **normal form** (i.e. `t'` cannot be reduced further). 
+   This means you can only place it as the *final step*. 
+
+So `elsa` would accept these three
+
+```
+eval ex1:
+  (\x y -> x y) (\x -> x) b 
+  =*> b
+
+eval ex2:
+  (\x y -> x y) (\x -> x) b 
+  =~> b
+
+eval ex3:
+  (\x y -> x y) (\x -> x) (\z -> z) 
+  =*> (\x -> x) (\z -> z) 
+  =b> (\z -> z)
+```
+
+but `elsa` would *not* accept 
+
+```
+eval ex3:
+  (\x y -> x y) (\x -> x) (\z -> z) 
+  =~> (\x -> x) (\z -> z) 
+  =b> (\z -> z)
+```
+
+because the right hand side of `=~>` can still be reduced further.
+
 [normalform]: http://dl.acm.org/citation.cfm?id=860276
 [normalform-pdf]: http://www.cs.cornell.edu/courses/cs6110/2014sp/Handouts/Sestoft.pdf
