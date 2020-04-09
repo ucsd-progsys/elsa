@@ -1,0 +1,25 @@
+let TRUE  = \x1 x2 -> x1
+let FALSE = \x1 x2 -> x2
+
+let PAIR  = \x1 x2 -> (\b -> b x1 x2)
+let FST   = \p -> p TRUE
+let SND   = \p -> p FALSE
+
+let ZERO  = \f x -> x 
+let ONE   = \f x -> f x
+let TWO   = \f x -> f (f x)
+let THREE = \f x -> f (f (f x))
+let SIX   = \f x -> f (f (f (f (f (f x)))))
+
+let INCR  = \n f x -> f (n f x)
+let ADD   = \n m -> n INCR m
+
+let FSUM  = \p -> PAIR (ADD (FST p) (SND p)) (INCR (SND p))                      
+
+let SUM   = \n -> FST ((INCR n) FSUM (PAIR ZERO ZERO))
+
+eval exSum0: SUM ZERO  =~> ZERO
+eval exSum1: SUM ONE   =~> ONE
+eval exSum2: SUM TWO   =~> THREE
+eval exSum3: SUM THREE =~> SIX
+
