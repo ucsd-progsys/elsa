@@ -21,10 +21,22 @@ elsaOn :: (Id -> Bool) -> Elsa a -> [Result a]
 elsaOn cond p =
   case mkEnv (defns p) of
     Left err -> [err]
-    Right g  -> [result g e | e <- evals p, check e ]
+    Right g  -> case checkDupEval (evals p) of
+      Left err -> [err]
+      Right _  -> [result g e | e <- evals p, check e ]
   where
     check = cond . bindId . evName
 
+checkDupEval :: [Eval a] -> CheckM a (S.HashSet Id)
+checkDupEval = foldM addEvalId S.empty
+
+addEvalId :: S.HashSet Id -> Eval a -> CheckM a (S.HashSet Id)
+addEvalId s e = 
+  if S.member (bindId b) s
+    then Left  (errDupEval b)
+    else Right (S.insert (bindId b) s)
+  where
+    b = evName e
 
 result :: Env a -> Eval a -> Result a
 result g e = fromEither (eval g e)
@@ -257,3 +269,9 @@ errInvalid b _ eqn _ = Invalid b (tag eqn)
 
 errPartial :: Bind a -> Expr a -> Result a
 errPartial b e = Partial b (tag e)
+
+errDupDefn :: Bind a -> Result a
+errDupDefn b = DupDefn b (tag b)
+
+errDupEval :: Bind a -> Result a
+errDupEval b = DupEval b (tag b)
