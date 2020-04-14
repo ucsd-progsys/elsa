@@ -33,10 +33,14 @@ mkEnv :: [Defn a] -> CheckM a (Env a)
 mkEnv = foldM expand M.empty
 
 expand :: Env a -> Defn a -> CheckM a (Env a)
-expand g (Defn b e) = case zs of
-                        (x,l) : _ -> Left  (Unbound b x l)
-                        []        -> Right (M.insert (bindId b) e' g)
+expand g (Defn b e) = 
+  if dupId 
+    then Left (errDupDefn b)
+    else case zs of
+      (x,l) : _ -> Left  (Unbound b x l)
+      []        -> Right (M.insert (bindId b) e' g)
   where
+    dupId           = M.member (bindId b) g
     e'              = subst e g
     zs              = M.toList (freeVars' e')
 
