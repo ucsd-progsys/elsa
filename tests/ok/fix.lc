@@ -42,7 +42,6 @@ let SUB   = \n m -> m DECR n
 let EQL   = \n m -> AND (ISZ (SUB n m)) (ISZ (SUB m n))
 let ADD   = \n m -> n INCR m
 let MUL   = \n m -> n (ADD m) ZERO 
-let ISZ   = \n -> n (\z -> FALSE) TRUE 
 
 --------------------------------------------------------------------------------
 -- RECURSION 
@@ -65,7 +64,7 @@ eval sum_three :
   SUM THREE 
   =~> SIX 
 
-eval fac_three : 
+eval fac_two : 
   FAC TWO 
   =~> TWO 
 
