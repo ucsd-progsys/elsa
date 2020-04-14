@@ -1,0 +1,10 @@
+let id   = \x -> x
+
+eval id_x :
+  id x
+  =d> (\x -> x) x
+  =b> x
+
+eval id_x :
+  id x
+  =~> x

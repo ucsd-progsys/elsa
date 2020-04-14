@@ -22,6 +22,8 @@ unitTests = group "Unit"
   [ testGroup "ok"      <$> dirTests "tests/ok"       TestOk
   , testGroup "further" <$> dirTests "tests/further"  TestPartial
   , testGroup "invalid" <$> dirTests "tests/invalid"  TestInvalid
+  , testGroup "dupdefn" <$> dirTests "tests/dupdefn"  TestDupDefn
+  , testGroup "dupeval" <$> dirTests "tests/dupeval"  TestDupEval
   ]
 
 data Outcome
@@ -29,6 +31,8 @@ data Outcome
   | TestPartial
   | TestInvalid
   | TestMixed
+  | TestDupDefn
+  | TestDupEval
   deriving (Eq, Ord, Show)
 
 --------------------------------------------------------------------------------
@@ -54,15 +58,19 @@ doTest :: FilePath -> IO Outcome
 doTest f =  resultOutcome . elsa <$> parseFile f
 
 resultOutcome :: [Result a] -> Outcome
-resultOutcome rs = case (oks, invs, parts) of
-                     (True, False, False) -> TestOk
-                     (False, True, False) -> TestInvalid
-                     (False, False, True) -> TestPartial
+resultOutcome rs = case (oks, invs, parts, ddefn, deval) of
+                     (True, False, False, False, False) -> TestOk
+                     (False, True, False, False, False) -> TestInvalid
+                     (False, False, True, False, False) -> TestPartial
+                     (False, False, False, True, False) -> TestDupDefn
+                     (False, False, False, False, True) -> TestDupEval
                      _                    -> TestMixed
   where
     oks          = notNull [ r | r@(OK {})      <- rs ]
     invs         = notNull [ r | r@(Invalid {}) <- rs ]
     parts        = notNull [ r | r@(Partial {}) <- rs ]
+    ddefn        = notNull [ r | r@(DupDefn {}) <- rs ]
+    deval        = notNull [ r | r@(DupEval {}) <- rs ]
     notNull      = not . null
 
 ----------------------------------------------------------------------------------------
