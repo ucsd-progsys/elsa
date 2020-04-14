@@ -1,0 +1,6 @@
+let true  = \x y -> y
+let true  = \x y -> x
+
+eval test_true:
+    true x y
+    =~> x

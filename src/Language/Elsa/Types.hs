@@ -30,6 +30,8 @@ data Result a
   | Partial (Bind a)    a
   | Invalid (Bind a)    a
   | Unbound (Bind a) Id a
+  | DupDefn (Bind a)    a
+  | DupEval (Bind a)    a
   deriving (Eq, Show, Functor)
 
 failures :: [Result a] -> [Id]
@@ -38,6 +40,8 @@ failures = mapMaybe go
     go (Partial b _)   = Just (bindId b)
     go (Invalid b _)   = Just (bindId b)
     go (Unbound b _ _) = Just (bindId b)
+    go (DupDefn b _)   = Just (bindId b)
+    go (DupEval b _)   = Just (bindId b)
     go _               = Nothing
 
 successes :: [Result a] -> [Id]
@@ -50,6 +54,8 @@ resultError :: (Located a) => Result a -> Maybe UserError
 resultError (Partial b l)   = mkErr l (bindId b ++ " can be further reduced!")
 resultError (Invalid b l)   = mkErr l (bindId b ++ " has an invalid reduction!")
 resultError (Unbound b x l) = mkErr l (bindId b ++ " has an unbound variable " ++ x )
+resultError (DupDefn b l)   = mkErr l ("Definition " ++ (bindId b) ++ " has already been declared")
+resultError (DupEval b l)   = mkErr l ("Evaluation " ++ (bindId b) ++ " has already been declared")
 resultError _               = Nothing
 
 mkErr :: (Located a) => a -> Text -> Maybe UserError
