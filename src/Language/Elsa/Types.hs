@@ -55,7 +55,7 @@ resultError (Partial b l)   = mkErr l (bindId b ++ " can be further reduced!")
 resultError (Invalid b l)   = mkErr l (bindId b ++ " has an invalid reduction!")
 resultError (Unbound b x l) = mkErr l (bindId b ++ " has an unbound variable " ++ x )
 resultError (DupDefn b l)   = mkErr l ("Definition " ++ (bindId b) ++ " has already been declared")
-resultError (DupEval b l)   = mkErr l ("Eval " ++ (bindId b) ++ " has already been declared")
+resultError (DupEval b l)   = mkErr l ("Evaluation " ++ (bindId b) ++ " has already been declared")
 resultError _               = Nothing
 
 mkErr :: (Located a) => a -> Text -> Maybe UserError
