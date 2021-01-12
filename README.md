@@ -29,6 +29,9 @@ $ git clone https://github.com/ucsd-progsys/elsa.git
 $ cd elsa
 $ stack install
 ```
+## Editor Plugins
+
+- [VSCode](https://github.com/mistzzt/vscode-elsa-lang)
 
 ## Overview
 
