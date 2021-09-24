@@ -1,7 +1,8 @@
-resolver: lts-14.12
-flags: {}
-extra-package-dbs: []
+resolver: lts-16.8
+compiler: ghc-8.10.2
+allow-newer: true
 packages:
 - '.'
 extra-deps:
 - dequeue-0.1.12
+- json-0.10
