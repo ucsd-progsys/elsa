@@ -32,6 +32,7 @@ $ stack install
 ## Editor Plugins
 
 - [VSCode](https://github.com/mistzzt/vscode-elsa-lang)
+- [Vim](https://github.com/glapa-grossklag/elsa.vim)
 
 ## Overview
 
