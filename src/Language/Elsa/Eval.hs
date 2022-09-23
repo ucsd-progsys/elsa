@@ -1,14 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, BangPatterns #-}
 
 module Language.Elsa.Eval (elsa, elsaOn) where
 
 import qualified Data.HashMap.Strict  as M
+import qualified Data.HashMap.Lazy    as ML
 import qualified Data.HashSet         as S
 import qualified Data.List            as L
 import           Control.Monad.State
 import qualified Data.Maybe           as Mb -- (isJust, maybeToList)
 import           Language.Elsa.Types
-import           Language.Elsa.Utils  (traceShow, qPushes, qInit, qPop, fromEither)
+import           Language.Elsa.Utils  (qPushes, qInit, qPop, fromEither)
 
 --------------------------------------------------------------------------------
 elsa :: Elsa a -> [Result a]
@@ -208,34 +209,27 @@ isIn = S.member . bindId
 
 --------------------------------------------------------------------------------
 -- | Evaluation to Normal Form
---   http://www.cs.cornell.edu/courses/cs6110/2014sp/Handouts/Sestoft.pdf
 --------------------------------------------------------------------------------
 isNormEq :: Env a -> Expr a -> Expr a -> Bool
-isNormEq g e1 e2 = isEquiv g e1' e2
+isNormEq g e1 e2 = eqVal (subst e2 g) $ evalNbE ML.empty (subst e1 g)
   where
-    e1'          = traceShow ("evalNO" ++ show e1) $ evalNO (traceShow "CANON" $ canon g e1)
+    evalNbE !env e = case e of
+      EVar x _            -> Mb.fromMaybe (Neutral x []) $ ML.lookup x env
+      ELam (Bind x _) b _ -> Fun $ \val -> evalNbE (ML.insert x val env) b
+      EApp f arg _        -> case evalNbE env f of
+        Fun f' -> f' (evalNbE env arg)
+        Neutral x args -> Neutral x (evalNbE env arg:args)
 
--- | normal-order reduction
-evalNO :: Expr a -> Expr a
-evalNO e@(EVar {})    = e
-evalNO (ELam b e l)   = ELam b (evalNO e) l
-evalNO (EApp e1 e2 l) = case evalCBN e1 of
-                          ELam b e1' _ -> evalNO (bSubst e1' (bindId b) e2)
-                          e1'          -> EApp (evalNO e1') (evalNO e2) l
+    eqVal (EVar x _) (Neutral x' [])
+      = x == x'
+    eqVal (ELam (Bind x _) b _) (Fun f)
+      = eqVal b (f (Neutral x []))
+    eqVal (EApp f a _) (Neutral x (a':args))
+      = eqVal a a' && eqVal f (Neutral x args)
+    eqVal _ _ = False
 
--- | call-by-name reduction
-evalCBN :: Expr a -> Expr a
-evalCBN e@(EVar {}) = e
-evalCBN e@(ELam {}) = e
-evalCBN (EApp e1 e2 l) = case evalCBN e1 of
-                          ELam b e1' _ -> evalCBN (bSubst e1' (bindId b) e2)
-                          e1'          -> EApp e1' e2 l
-
--- | Force alpha-renaming to ensure capture avoiding subst
-bSubst :: Expr a -> Id -> Expr a -> Expr a
-bSubst e x e' = subst e (M.singleton x e'')
-  where
-    e''       = e' -- alphaShift n e'
+-- | NbE semantic domain
+data Value = Fun !(Value -> Value) | Neutral !Id ![Value]
 
 --------------------------------------------------------------------------------
 -- | General Helpers
