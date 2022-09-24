@@ -1,0 +1,20 @@
+-- https://github.com/ucsd-progsys/elsa/issues/8
+
+let TRUE  = \x y -> x
+let FALSE = \x y -> y
+let ITE   = \b x y -> b x y
+let NOT = \b x y -> b y x
+let ZERO  = \f x -> x
+let ONE   = \f x -> f x
+let TWO   = \f x -> f (f x)
+let THREE = \f x -> f (f (f x))
+let FOUR  = \f x -> f (f (f (f x)))
+let EVEN = \n -> n NOT TRUE
+  
+eval even_four:
+  EVEN FOUR
+  =~> TRUE  
+  
+eval even_three:
+  EVEN THREE
+  =~> FALSE
