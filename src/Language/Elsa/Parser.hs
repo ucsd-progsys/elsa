@@ -25,20 +25,13 @@ parse = parseWith elsa
 
 parseWith  :: Parser a -> FilePath -> Text -> a
 parseWith p f s = case runParser (whole p) f s of
-                    Left pErrs -> Ex.throw (mkErrors pErrs s) -- panic (show err) (posSpan . NE.head . errorPos $ err)
+                    Left pErrs -> Ex.throw (mkErrors pErrs f s) -- panic (show err) (posSpan . NE.head . errorPos $ err)
                     Right e  -> e
 
-mkErrors :: ParseErrorBundle Text SourcePos -> Text -> [UserError]
-mkErrors b s = [ mkError (formatLineCol e s ++ " " ++ parseErrorPretty e) (sp b) | e <- NE.toList (bundleErrors b)]
-  where 
-    sp     = posSpan . pstateSourcePos . bundlePosState
+mkErrors :: ParseErrorBundle Text SourcePos -> FilePath -> Text -> [UserError]
+mkErrors b f s = [ let (r, c) = lineCol s (errorOffset e) in mkError (parseErrorPretty e) (posSpan (SourcePos f (mkPos r) (mkPos c))) | e <- NE.toList (bundleErrors b)]
 
 -- PosState looks relevant for finding line/column, but I (Justin) don't know how to use it
-
-formatLineCol :: ParseError Text SourcePos -> Text -> String
-formatLineCol e s = "line " ++ show l ++ " col " ++ show c
-  where
-    (l, c) = lineCol s (errorOffset e)
 
 lineCol :: String -> Int -> (Int, Int)
 lineCol s i = foldl f (1, 1) (Prelude.take i s)
