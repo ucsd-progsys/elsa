@@ -29,14 +29,16 @@ parseWith p f s = case runParser (whole p) f s of
                     Right e  -> e
 
 mkErrors :: ParseErrorBundle Text SourcePos -> FilePath -> Text -> [UserError]
-mkErrors b f s = [ let (r, c) = lineCol s (errorOffset e) in mkError (parseErrorPretty e) (posSpan (SourcePos f (mkPos r) (mkPos c))) | e <- NE.toList (bundleErrors b)]
+mkErrors b f s = [ let (l, c) = lineCol s (errorOffset e) in mkError (parseErrorPretty e) (span l c) | e <- NE.toList (bundleErrors b)]
+  where
+    span l c = posSpan (SourcePos f (mkPos l) (mkPos c))
 
 -- PosState looks relevant for finding line/column, but I (Justin) don't know how to use it
 
 lineCol :: String -> Int -> (Int, Int)
 lineCol s i = foldl f (1, 1) (Prelude.take i s)
   where
-    f (r, c) char = if char == '\n' then (r + 1, 1) else (r, c + 1)
+    f (l, c) char = if char == '\n' then (l + 1, 1) else (l, c + 1)
 
 instance ShowErrorComponent SourcePos where
   showErrorComponent = show
