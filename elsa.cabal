@@ -13,7 +13,7 @@ maintainer:          jhala@cs.ucsd.edu
 category:            Language
 Homepage:            http://github.com/ucsd-progsys/elsa
 build-type:          Simple
-extra-source-files:  README.md
+extra-source-files:  README.md, CHANGES.md
 cabal-version:       >=1.10
 
 Source-Repository head
