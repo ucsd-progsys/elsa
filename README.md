@@ -32,7 +32,9 @@ $ stack install
 ```
 ## Editor Plugins
 
-- [VSCode](https://github.com/mistzzt/vscode-elsa-lang)
+- [VS Code extension](https://marketplace.visualstudio.com/items?itemName=akainth015.elsa-lang) with syntax highlighting and autocompletion support
+  - [Source](https://github.com/akainth015/vscode-elsa-lang)
+  - Contributed by [**@akainth015**](https://github.com/akainth015/), based on the [original version](https://github.com/mistzzt/vscode-elsa-lang) by [**@mistzzt**](https://github.com/mistzzt)
 - [Vim](https://github.com/glapa-grossklag/elsa.vim)
 
 ## Overview
