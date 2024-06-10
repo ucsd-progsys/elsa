@@ -181,6 +181,7 @@ data Mode
   = Json
   | Cmdline
   | Server
+  | Wasm
   deriving (Eq, Show)
 
 --------------------------------------------------------------------------------
@@ -218,6 +219,7 @@ renderErrors :: Mode -> [UserError] -> IO Text
 renderErrors Json    es = return (renderErrorsJson es)
 renderErrors Server  es = return (renderResultJson es)
 renderErrors Cmdline es = renderErrorsText es
+renderErrors Wasm    es = renderErrorsText es
 
 renderErrorsText :: [UserError] -> IO Text
 renderErrorsText [] =

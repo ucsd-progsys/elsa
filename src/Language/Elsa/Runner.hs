@@ -26,7 +26,10 @@ topMain:: IO ()
 topMain = do
   (m, f) <- getSrcFile
   s      <- readFile f
-  res    <- timeout (timeLimit * 10 ^ 6) (runElsa m f s `catch` exitErrors m f)
+  res    <- let run' = (runElsa m f s `catch` exitErrors m f)
+            in if runInThread m
+                then timeout (timeLimit * 10 ^ 6) run'
+                else runImmediately run'
   case res of
     Just z  -> return z
     Nothing -> putStrLn timeMsg >> exitFailure
@@ -43,6 +46,7 @@ getSrcFile = do
   case args of
     ["--json"  , f] -> return (Json,    f)
     ["--server", f] -> return (Server,  f)
+    ["--wasm", f]   -> return (Wasm,    f)
     [f]             -> return (Cmdline, f)
     _               -> error "Please run with a single file as input"
 
@@ -66,6 +70,7 @@ esHandle mode writer exitF es = renderErrors mode es >>= writer >> exitF es
 modeWriter :: Mode -> FilePath -> Text -> IO ()
 modeWriter Cmdline _ s = hPutStrLn stderr s 
 modeWriter Json    _ s = hPutStrLn stderr s
+modeWriter Wasm    _ s = hPutStrLn stderr s
 modeWriter Server  f s = do createDirectoryIfMissing True jsonDir
                             writeFile jsonFile s
                             hPutStrLn stderr s
@@ -96,3 +101,13 @@ runElsa1 :: Elsa a -> Id -> Maybe (Result ())
 runElsa1 p x = case elsaOn (== x) p of
                  [r] -> Just (void r)
                  _   -> Nothing
+
+
+runInThread :: Mode -> Bool
+runInThread Wasm = False
+runInThread _    = True
+
+runImmediately :: IO () -> IO (Maybe ())
+runImmediately r = do
+                   result <- r
+                   return (Just result)
