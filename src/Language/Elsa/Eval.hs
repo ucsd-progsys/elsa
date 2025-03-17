@@ -7,6 +7,7 @@ import qualified Data.HashMap.Lazy    as ML
 import qualified Data.HashSet         as S
 import qualified Data.List            as L
 import           Control.Monad.State
+import           Control.Monad        (foldM)
 import qualified Data.Maybe           as Mb -- (isJust, maybeToList)
 import           Language.Elsa.Types
 import           Language.Elsa.Utils  (qPushes, qInit, qPop, fromEither)
