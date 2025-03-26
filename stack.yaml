@@ -1,5 +1,5 @@
-resolver: lts-21.13
-compiler: ghc-9.4.7
+resolver: lts-23.11
+compiler: ghc-9.8.4
 allow-newer: true
 packages:
 - '.'
