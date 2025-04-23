@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Language.Elsa.Types where
 
@@ -11,15 +12,16 @@ import           Language.Elsa.UX
 import           Data.Maybe (mapMaybe)
 import           Data.Hashable
 
-type Id      = String
-type SElsa   = Elsa SourceSpan
-type SDefn   = Defn SourceSpan
-type SExpr   = Expr SourceSpan
-type SEval   = Eval SourceSpan
-type SStep   = Step SourceSpan
-type SBind   = Bind SourceSpan
-type SEqn    = Eqn  SourceSpan
-type SResult = Result SourceSpan
+type Id        = String
+type SElsaItem = ElsaItem SourceSpan
+type SElsa     = Elsa SourceSpan
+type SDefn     = Defn SourceSpan
+type SExpr     = Expr SourceSpan
+type SEval     = Eval SourceSpan
+type SStep     = Step SourceSpan
+type SBind     = Bind SourceSpan
+type SEqn      = Eqn  SourceSpan
+type SResult   = Result SourceSpan
 
 --------------------------------------------------------------------------------
 -- | Result
@@ -64,6 +66,8 @@ mkErr l msg = Just (mkError msg (sourceSpan l))
 --------------------------------------------------------------------------------
 -- | Programs
 --------------------------------------------------------------------------------
+data ElsaItem a = DefnItem (Defn a) | EvalItem (Eval a)
+
 data Elsa a = Elsa
   { defns :: [Defn a]
   , evals :: [Eval a]
@@ -172,6 +176,7 @@ class Tagged t where
   tag :: t a -> a
 
 instance Tagged Eqn where
+  tag :: Eqn a -> a
   tag (AlphEq x) = x
   tag (BetaEq x) = x
   tag (UnBeta x) = x

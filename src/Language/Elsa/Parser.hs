@@ -140,7 +140,17 @@ withSpan p = do
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 elsa :: Parser SElsa
-elsa = Elsa <$> many defn <*> many eval
+elsa = do
+  items <- many elsaItem
+  pure $
+    Elsa
+      { defns = [d | DefnItem d <- items],
+        evals = [e | EvalItem e <- items]
+      }
+
+elsaItem :: Parser SElsaItem
+elsaItem = 
+  (DefnItem <$> defn) <|> (EvalItem <$> eval)
 
 defn :: Parser SDefn
 defn = do
@@ -168,7 +178,7 @@ eqn =  try (withSpan' (symbol "=a>" >> return AlphEq))
    <|> try (withSpan' (symbol "=d>" >> return DefnEq))
    <|> try (withSpan' (symbol "=*>" >> return TrnsEq))
    <|> try (withSpan' (symbol "<*=" >> return UnTrEq))
-   <|>     (withSpan' (symbol "=~>" >> return NormEq))
+   <|>      withSpan' (symbol "=~>" >> return NormEq)
 
 expr :: Parser SExpr
 expr =  try lamExpr
