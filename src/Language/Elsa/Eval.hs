@@ -209,6 +209,26 @@ isIn :: Bind a -> S.HashSet Id -> Bool
 isIn = S.member . bindId
 
 --------------------------------------------------------------------------------
+-- | Eta Reduction
+--------------------------------------------------------------------------------
+isEtaEq :: Env a -> Expr a -> Expr a -> Bool
+isEtaEq g e1 e2 = go (eta g e1) (subst e2 g)
+  where
+    go Nothing _ = False
+    go (Just e1) e2 = e1 == e2
+
+eta :: Env a -> Expr a -> Maybe (Expr a)
+eta g (ELam x (EApp e (EVar x' _) _) _) =
+  if (bindId x == x') && not (isIn x zs)
+    then
+      Just e'
+    else Nothing
+  where
+    zs = freeVars e'
+    e' = subst e g
+eta _ _ = Nothing
+
+--------------------------------------------------------------------------------
 -- | Evaluation to Normal Form
 --------------------------------------------------------------------------------
 isNormEq :: Env a -> Expr a -> Expr a -> Bool
