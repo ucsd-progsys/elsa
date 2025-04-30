@@ -217,6 +217,9 @@ isEtaEq g e1 e2 = go (eta g e1) (subst e2 g)
     go Nothing _ = False
     go (Just e1) e2 = e1 == e2
 
+isUnEta :: Env a -> Expr a -> Expr a -> Bool
+isUnEta g e1 e2 = isEtaEq g e2 e1
+
 eta :: Env a -> Expr a -> Maybe (Expr a)
 eta g (ELam x (EApp e (EVar x' _) _) _) =
   if (bindId x == x') && not (isIn x zs)
