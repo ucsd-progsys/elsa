@@ -33,7 +33,7 @@ checkDupEval :: [Eval a] -> CheckM a (S.HashSet Id)
 checkDupEval = foldM addEvalId S.empty
 
 addEvalId :: S.HashSet Id -> Eval a -> CheckM a (S.HashSet Id)
-addEvalId s e = 
+addEvalId s e =
   if S.member (bindId b) s
     then Left  (errDupEval b)
     else Right (S.insert (bindId b) s)
@@ -47,8 +47,8 @@ mkEnv :: [Defn a] -> CheckM a (Env a)
 mkEnv = foldM expand M.empty
 
 expand :: Env a -> Defn a -> CheckM a (Env a)
-expand g (Defn b e) = 
-  if dupId 
+expand g (Defn b e) =
+  if dupId
     then Left (errDupDefn b)
     else case zs of
       (x,l) : _ -> Left  (Unbound b x l)
@@ -231,6 +231,45 @@ isNormEq g e1 e2 = eqVal (subst e2 g) $ evalNbE ML.empty (subst e1 g)
 
 -- | NbE semantic domain
 data Value = Fun !(Value -> Value) | Neutral !Id ![Value]
+
+--------------------------------------------------------------------------------
+-- | Evaluation to Weak Normal Form
+--------------------------------------------------------------------------------
+isWnfEq :: Env a -> Expr a -> Expr a -> Bool
+isWnfEq g e1 e2 = wnf (subst e1 g) == subst e2 g
+  where
+    wnf :: Expr a -> Expr a
+    wnf e@(EVar {}) = e
+    wnf e@(ELam {}) = e
+    wnf e@(EApp f arg l) = case wnf f of
+      ELam {} -> maybe e wnf (beta f $ wnf arg)
+      f' -> EApp f' (wnf arg) l
+
+--------------------------------------------------------------------------------
+-- | Evaluation to Head Normal Form
+--------------------------------------------------------------------------------
+isHnfEq :: Env a -> Expr a -> Expr a -> Bool
+isHnfEq g e1 e2 = hnf (subst e1 g) == subst e2 g
+  where
+    hnf :: Expr a -> Expr a
+    hnf e@(EVar {}) = e
+    hnf (ELam bi b a) = ELam bi (hnf b) a
+    hnf e@(EApp f arg l) = case hnf f of
+      ELam {} -> maybe e hnf (beta f arg)
+      f' -> EApp f' (hnf arg) l
+
+--------------------------------------------------------------------------------
+-- | Evaluation to Weak Head Normal Form
+--------------------------------------------------------------------------------
+isWhnfEq :: Env a -> Expr a -> Expr a -> Bool
+isWhnfEq g e1 e2 = whnf (subst e1 g) == subst e2 g
+  where
+    whnf :: Expr a -> Expr a
+    whnf e@(EVar {}) = e
+    whnf e@(ELam {}) = e
+    whnf e@(EApp f arg l) = case whnf f of
+      ELam {} -> maybe e whnf (beta f arg)
+      f' -> EApp f' arg l
 
 --------------------------------------------------------------------------------
 -- | General Helpers
