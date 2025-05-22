@@ -203,6 +203,7 @@ parseRegEqn = do
     , try (string "e")  >> return EqEta
     , try (string "d")  >> return EqDefn
     , try (string "*")  >> return EqTrans
+    , try (string "~")  >> return EqNormTrans
     , try (string "n*") >> return EqNormOrdTrans
     , try (string "p*") >> return EqAppOrdTrans
     ]

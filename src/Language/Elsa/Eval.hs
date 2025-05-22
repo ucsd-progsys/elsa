@@ -89,6 +89,7 @@ isEq (Eqn op chk _) =
     EqNormOrd        -> isNBetaEq chk
     EqAppOrd         -> isABetaEq chk
     EqTrans          -> isTrnsEq chk
+    EqNormTrans      -> toNormEq --chk unnecessary
     EqNormOrdTrans   -> isNTrnsEq chk
     EqAppOrdTrans    -> isATrnsEq chk
     EqUnBeta         -> isUnBeta

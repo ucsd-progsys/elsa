@@ -99,6 +99,7 @@ data Step a
   EqNormOrdTrans  : Normal order beta reduction with alpha equivalence and definition unpacking
   EqAppOrdTrans   : Applicative order beta reduction with alpha equivalence and definition unpacking
   EqTrans         : Zero or more beta reductions with alpha equivalence and definition unpacking
+  EqNormTrans     : Acts the same as the "=n*:s>" operator, no matter the normal form check
   EqUnBeta        : Backwards beta reduction
   EqUnEta         : Backwards eta reduction
   EqUnNormOrd     : Backwards normal order beta reduction
@@ -111,6 +112,7 @@ data EqnOp
   = EqAlpha | EqBeta | EqEta | EqDefn
   | EqNormOrd | EqAppOrd | EqTrans
   | EqNormOrdTrans | EqAppOrdTrans
+  | EqNormTrans
   | EqUnBeta | EqUnEta | EqUnNormOrd
   | EqUnAppOrd | EqUnTrans
   | EqUnNormOrdTrans | EqUnAppOrdTrans
