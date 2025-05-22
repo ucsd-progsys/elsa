@@ -11,6 +11,7 @@ import           Control.Monad        (foldM)
 import qualified Data.Maybe           as Mb -- (isJust, maybeToList)
 import           Language.Elsa.Types
 import           Language.Elsa.Utils  (qPushes, qInit, qPop, fromEither)
+import Data.List (group)
 
 --------------------------------------------------------------------------------
 elsa :: Elsa a -> [Result a]
@@ -79,47 +80,36 @@ step g n e (Step k e')
   | otherwise     = Left (errInvalid n e k e')
 
 isEq :: Eqn a -> Env a -> Expr a -> Expr a -> Bool
-isEq (AlphEq _) = isAlphEq
-isEq (AtaSEq _) = isAlphSEq
-isEq (AtaWEq _) = isAlphWEq
-isEq (AtaHEq _) = isAlphHEq
-isEq (BetaEq _) = isBetaEq
-isEq (UnBeta _) = isUnBeta
-isEq (BtaSEq _) = isBetaSEq
-isEq (BtaWEq _) = isBetaWEq
-isEq (BtaHEq _) = isBetaHEq
-isEq (ABtaEq _) = isABetaEq
-isEq (UnABta _) = isUnABeta
-isEq (NBtaEq _) = isNBetaEq
-isEq (UnNBta _) = isUnNBeta
-isEq (EtaaEq _) = isEtaaEq
-isEq (UnEtaa _) = isUnEtaa
-isEq (EtaSEq _) = isEtaSEq
-isEq (EtaWEq _) = isEtaWEq
-isEq (EtaHEq _) = isEtaHEq
-isEq (DefnEq _) = isDefnEq
-isEq (DtaSEq _) = isDefnSEq
-isEq (DtaWEq _) = isDefnWEq
-isEq (DtaHEq _) = isDefnHEq
-isEq (TrnsEq _) = isTrnsEq
-isEq (UnTrEq _) = isUnTrEq
-isEq (TnsWEq _) = isTnsWEq
-isEq (TnsHEq _) = isTnsHEq
-isEq (ATrsEq _) = isATrnsEq
-isEq (UnATEq _) = isUnATrEq
-isEq (NTrsEq _) = isNTrnsEq
-isEq (UnNTEq _) = isUnNTrEq
-isEq (NormEq _) = toNormEq
-
+isEq (Eqn op chk _) =
+  case op of
+    EqAlpha          -> isAlphEq chk
+    EqBeta           -> isBetaEq chk
+    EqEta            -> isEtaaEq chk
+    EqDefn           -> isDefnEq chk
+    EqNormOrd        -> isNBetaEq chk
+    EqAppOrd         -> isABetaEq chk
+    EqTrans          -> isTrnsEq chk
+    EqNormOrdTrans   -> isNTrnsEq chk
+    EqAppOrdTrans    -> isATrnsEq chk
+    EqUnBeta         -> isUnBeta
+    EqUnEta          -> isUnEtaa
+    EqUnNormOrd      -> isUnNBeta
+    EqUnAppOrd       -> isUnABeta
+    EqUnTrans        -> isUnTrEq
+    EqUnNormOrdTrans -> isUnNTrEq
+    EqUnAppOrdTrans  -> isUnATrEq
 
 --------------------------------------------------------------------------------
 -- | Transitive Reachability
 --------------------------------------------------------------------------------
-isTrnsEq :: Env a -> Expr a -> Expr a -> Bool
-isTrnsEq g e1 e2 = Mb.isJust (findTrans (isEquiv g e2) (canon g e1))
+isTrnsEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isTrnsEq Nothing g e1 e2 = Mb.isJust (findTrans (isEquiv g e2) (canon g e1))
+isTrnsEq (Just Strong) g e1 e2 = isTnsSEq isNormEq g e1 e2
+isTrnsEq (Just Weak) g e1 e2 = isTnsSEq isWnfEq g e1 e2
+isTrnsEq (Just Head) g e1 e2 = isTnsSEq isHnfEq g e1 e2
 
 isUnTrEq :: Env a -> Expr a -> Expr a -> Bool
-isUnTrEq g e1 e2 = isTrnsEq g e2 e1
+isUnTrEq g e1 e2 = isTrnsEq Nothing g e2 e1
 
 findTrans :: (Expr a -> Bool) -> Expr a -> Maybe (Expr a)
 findTrans p e = go S.empty (qInit e)
@@ -132,79 +122,66 @@ findTrans p e = go S.empty (qInit e)
              then return e
              else go (S.insert e seen) (qPushes q (betas e))
 
--- findTrans with weak normal form check
-isTnsWEq :: Env a -> Expr a -> Expr a -> Bool
-isTnsWEq = isTnsSEq isWnfEq
-
--- findTrans with head normal form check
-isTnsHEq :: Env a -> Expr a -> Expr a -> Bool
-isTnsHEq = isTnsSEq isHnfEq
-
 -- findTrans with selected normal form check
 isTnsSEq :: (Env a -> Expr a -> Expr a -> Bool) -> Env a -> Expr a -> Expr a -> Bool
 isTnsSEq isNfEq g e1 e2 = maybe False (flip (isNfEq g) e2) (findTrans (isEquiv g e2) (canon g e1))
 
 -- Multiple normal order beta, alpha reductions and/or definitions
-isNTrnsEq :: Env a -> Expr a -> Expr a -> Bool
-isNTrnsEq = isSTrnsEq norStep
+isNTrnsEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isNTrnsEq Nothing = isSTrnsEq norStep
+isNTrnsEq (Just Strong) = isSTrnsSEq norStep isNormEq
+isNTrnsEq (Just Weak) = isSTrnsSEq norStep isWnfEq
+isNTrnsEq (Just Head) = isSTrnsSEq norStep isHnfEq
 
 isUnNTrEq :: Env a -> Expr a -> Expr a -> Bool
-isUnNTrEq g e1 e2 = isNTrnsEq g e2 e1
+isUnNTrEq g e1 e2 = isNTrnsEq Nothing g e2 e1
 
 -- Multiple applicative order beta, alpha reductions and/or definitions
-isATrnsEq :: Env a -> Expr a -> Expr a -> Bool
-isATrnsEq = isSTrnsEq appStep
+isATrnsEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isATrnsEq Nothing = isSTrnsEq appStep
+isATrnsEq (Just Strong) = isSTrnsSEq appStep isNormEq
+isATrnsEq (Just Weak) = isSTrnsSEq appStep isWnfEq
+isATrnsEq (Just Head) = isSTrnsSEq appStep isHnfEq
 
 isUnATrEq :: Env a -> Expr a -> Expr a -> Bool
-isUnATrEq g e1 e2 = isATrnsEq g e2 e1
+isUnATrEq g e1 e2 = isATrnsEq Nothing g e2 e1
 
 -- Multiple beta, alpha reductions and/or definitions, using selected strategy
 isSTrnsEq :: forall a. (Expr a -> Maybe (Expr a)) -> Env a -> Expr a -> Expr a -> Bool
-isSTrnsEq step g e1 e2 = Mb.isJust (go (isEquiv g e2) (canon g e1))
-  where
-    go :: (Expr a -> Bool) -> Expr a -> Maybe (Expr a)
-    go f e = do
-      e' <- step e
-      if f e' then
-        return e'
-      else
-        go f e'
+isSTrnsEq step g e1 e2 = Mb.isJust (findSTrans step (isEquiv g e2) (canon g e1))
+
+findSTrans :: (Expr a -> Maybe (Expr a)) -> (Expr a -> Bool) -> Expr a -> Maybe (Expr a)
+findSTrans step f e = do
+  e' <- step e
+  if f e' then
+    return e'
+  else
+    findSTrans step f e'
+
+-- isSTrnsEq with selected normal form check
+isSTrnsSEq :: (Expr a -> Maybe (Expr a)) -> (Env a -> Expr a -> Expr a -> Bool) -> Env a -> Expr a -> Expr a -> Bool
+isSTrnsSEq step isNfEq g e1 e2 =
+  case findSTrans step (isEquiv g e2) (canon g e1) of
+    Nothing -> False
+    Just e1' -> isNfEq g e1' e2
 
 --------------------------------------------------------------------------------
 -- | Definition Equivalence
 --------------------------------------------------------------------------------
-isDefnEq :: Env a -> Expr a -> Expr a -> Bool
-isDefnEq g e1 e2 = subst e1 g == subst e2 g
-
--- Defintion Equivalence with strong normal form check
-isDefnSEq :: Env a -> Expr a -> Expr a -> Bool
-isDefnSEq = isNormEq
-
--- Defintion Equivalence with weak normal form check
-isDefnWEq :: Env a -> Expr a -> Expr a -> Bool
-isDefnWEq = isWnfEq
-
--- Defintion Equivalence with head normal form check
-isDefnHEq :: Env a -> Expr a -> Expr a -> Bool
-isDefnHEq = isHnfEq
+isDefnEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isDefnEq Nothing g e1 e2 = subst e1 g == subst e2 g
+isDefnEq (Just Strong) g e1 e2 = isNormEq g e1 e2
+isDefnEq (Just Weak) g e1 e2 = isWnfEq g e1 e2
+isDefnEq (Just Head) g e1 e2 = isHnfEq g e1 e2
 
 --------------------------------------------------------------------------------
 -- | Alpha Equivalence
 --------------------------------------------------------------------------------
-isAlphEq :: Env a -> Expr a -> Expr a -> Bool
-isAlphEq _ e1 e2 = alphaNormal e1 == alphaNormal e2
-
--- Alpha Equivalence with strong normal form check
-isAlphSEq :: Env a -> Expr a -> Expr a -> Bool
-isAlphSEq = isAlphPEq isNormEq
-
--- Alpha Equivalence with weak normal form check
-isAlphWEq :: Env a -> Expr a -> Expr a -> Bool
-isAlphWEq = isAlphPEq isWnfEq
-
--- Alpha Equivalence with head normal form check
-isAlphHEq :: Env a -> Expr a -> Expr a -> Bool
-isAlphHEq = isAlphPEq isHnfEq
+isAlphEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isAlphEq Nothing _ e1 e2 = alphaNormal e1 == alphaNormal e2
+isAlphEq (Just Strong) g e1 e2 = isAlphPEq isNormEq g e1 e2
+isAlphEq (Just Weak) g e1 e2 = isAlphPEq isWnfEq g e1 e2
+isAlphEq (Just Head) g e1 e2 = isAlphPEq isHnfEq g e1 e2
 
 -- Alpha Equivalence with provided normal form check
 isAlphPEq :: (Env a -> Expr a -> Expr a -> Bool) -> Env a -> Expr a -> Expr a -> Bool
@@ -257,41 +234,45 @@ aId = "$x"
 -- | Beta Reduction
 --------------------------------------------------------------------------------
 -- Beta reduction, without any normal form check
-isBetaEq :: Env a -> Expr a -> Expr a -> Bool
-isBetaEq _ e1 e2 = or [ e1' == e2  | e1' <- betas e1 ]
+isBetaEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isBetaEq Nothing _ e1 e2 = or [ e1' == e2  | e1' <- betas e1 ]
+isBetaEq (Just Strong) g e1 e2 = isBetaPEq isNormEq g e1 e2
+isBetaEq (Just Weak) g e1 e2 = isBetaPEq isWnfEq g e1 e2
+isBetaEq (Just Head) g e1 e2 = isBetaPEq isHnfEq g e1 e2
 
 isUnBeta :: Env a -> Expr a -> Expr a -> Bool
-isUnBeta g e1 e2 = isBetaEq g e2 e1
-
--- Beta reduction, with strong normal form check
-isBetaSEq :: Env a -> Expr a -> Expr a -> Bool
-isBetaSEq = isBetaPEq isNormEq
-
--- Beta reduction, with weak normal form check
-isBetaWEq :: Env a -> Expr a -> Expr a -> Bool
-isBetaWEq = isBetaPEq isWnfEq
-
--- Beta reduction, with head normal form check
-isBetaHEq :: Env a -> Expr a -> Expr a -> Bool
-isBetaHEq = isBetaPEq isHnfEq
+isUnBeta g e1 e2 = isBetaEq Nothing g e2 e1
 
 -- Beta reduction, with provided normal form check
 isBetaPEq :: (Env a -> Expr a -> Expr a -> Bool) -> Env a -> Expr a -> Expr a -> Bool
 isBetaPEq isNfEq g e1 e2 = or [ isNfEq g e1' e2  | e1' <- betas e1 ]
 
 -- Use normal order evaluation strategy
-isNBetaEq :: Env a -> Expr a -> Expr a -> Bool
-isNBetaEq _ e1 e2 = norStep e1 == Just e2
+isNBetaEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isNBetaEq = isSBetaEq norStep
 
 isUnNBeta :: Env a -> Expr a -> Expr a -> Bool
-isUnNBeta g e1 e2 = isNBetaEq g e2 e1
+isUnNBeta g e1 e2 = isNBetaEq Nothing g e2 e1
 
 -- Use applicative order evaluation strategy
-isABetaEq :: Env a -> Expr a -> Expr a -> Bool
-isABetaEq _ e1 e2 = appStep e1 == Just e2
+isABetaEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isABetaEq = isSBetaEq appStep
 
 isUnABeta :: Env a -> Expr a -> Expr a -> Bool
-isUnABeta g e1 e2 = isABetaEq g e2 e1
+isUnABeta g e1 e2 = isABetaEq Nothing g e2 e1
+
+-- Use selected order evaluation strategy
+isSBetaEq :: (Expr a -> Maybe (Expr a)) -> Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isSBetaEq step Nothing _ e1 e2 = step e1 == Just e2
+isSBetaEq step (Just Strong) g e1 e2 = case step e1 of
+  Nothing -> False
+  Just e1' -> isNormEq g e1' e2
+isSBetaEq step (Just Weak) g e1 e2 = case step e1 of
+  Nothing -> False
+  Just e1' -> isWnfEq g e1' e2
+isSBetaEq step (Just Head) g e1 e2 = case step e1 of
+  Nothing -> False
+  Just e1' -> isHnfEq g e1' e2
 
 -- norStep is a single normal order reduction
 norStep :: Expr a -> Maybe (Expr a)
@@ -363,25 +344,16 @@ isIn = S.member . bindId
 -- | Eta Reduction
 --------------------------------------------------------------------------------
 -- Eta reduction, without any normal form check
-isEtaaEq :: Env a -> Expr a -> Expr a -> Bool
-isEtaaEq g e1 e2 = go e1 (subst e2 g)
+isEtaaEq :: Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
+isEtaaEq Nothing g e1 e2 = go e1 (subst e2 g)
   where
     go e1 e2' = or [e1' == e2' | e1' <- etas g e1]
+isEtaaEq (Just Strong) g e1 e2 = isEtaPEq isNormEq g e1 e2
+isEtaaEq (Just Weak) g e1 e2 = isEtaPEq isWnfEq g e1 e2
+isEtaaEq (Just Head) g e1 e2 = isEtaPEq isHnfEq g e1 e2
 
 isUnEtaa :: Env a -> Expr a -> Expr a -> Bool
-isUnEtaa g e1 e2 = isEtaaEq g e2 e1
-
--- Eta reduction, with strong normal form check
-isEtaSEq :: Env a -> Expr a -> Expr a -> Bool
-isEtaSEq = isEtaPEq isNormEq
-
--- Eta reduction, with weak normal form check
-isEtaWEq :: Env a -> Expr a -> Expr a -> Bool
-isEtaWEq = isEtaPEq isWnfEq
-
--- Eta reduction, with head normal form check
-isEtaHEq :: Env a -> Expr a -> Expr a -> Bool
-isEtaHEq = isEtaPEq isHnfEq
+isUnEtaa g e1 e2 = isEtaaEq Nothing g e2 e1
 
 -- Eta reduction, with provided normal form check
 isEtaPEq :: (Env a -> Expr a -> Expr a -> Bool) -> Env a -> Expr a -> Expr a -> Bool
@@ -510,7 +482,7 @@ canon :: Env a -> Expr a -> Expr  a
 canon g = alphaNormal . (`subst` g)
 
 isEquiv :: Env a -> Expr a -> Expr a -> Bool
-isEquiv g e1 e2 = isAlphEq g (subst e1 g) (subst e2 g)
+isEquiv g e1 e2 = isAlphEq Nothing g (subst e1 g) (subst e2 g)
 --------------------------------------------------------------------------------
 -- | Error Cases
 --------------------------------------------------------------------------------

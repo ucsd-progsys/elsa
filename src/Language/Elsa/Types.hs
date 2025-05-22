@@ -89,39 +89,37 @@ data Step a
   = Step !(Eqn a) !(Expr a)
   deriving (Eq, Show)
 
-data Eqn a
-  = AlphEq a -- Alpha equality
-  | BetaEq a -- Single beta reduction
-  | UnBeta a
-  | EtaaEq a -- Single eta reduction
-  | UnEtaa a
-  | AtaSEq a -- Alpha equality, is strong normal form
-  | AtaWEq a -- Alpha equality, is weak normal form
-  | AtaHEq a -- Alpha equality, is head normal form
-  | BtaSEq a -- Single beta reduction, reduces to strong normal form
-  | BtaWEq a -- Single beta reduction, reduces to weak normal form
-  | BtaHEq a -- Single beta reduction, reduces to head normal form
-  | ABtaEq a -- Single applicative beta reduction
-  | UnABta a
-  | NBtaEq a -- Single normal beta reduction
-  | UnNBta a
-  | DtaSEq a -- Definition equality; is strong normal form
-  | DtaWEq a -- Definition equality; is weak normal form
-  | DtaHEq a -- Definition equality; is head normal form
-  | EtaSEq a -- Single eta reduction, reduces to strong normal form
-  | EtaWEq a -- Single eta reduction, reduces to weak normal form
-  | EtaHEq a -- Single eta reduction, reduces to head normal form
-  | DefnEq a -- Definition equality
-  | TrnsEq a -- Multiple reductions: beta, alpha and/or definitions
-  | UnTrEq a
-  | TnsWEq a -- Multiple reductions: beta, alpha and/or definitions, reduces to weak normal form
-  | TnsHEq a -- Multiple reductions: beta, alpha and/or definitions, reduces to head normal form
-  | ATrsEq a -- Multiple reductions: applicative beta, alpha and/or definitions
-  | UnATEq a
-  | NTrsEq a -- Multiple reductions: normal beta, alpha and/or definitions
-  | UnNTEq a
-  | NormEq a -- Multiple reductions and/or definitions: normal beta, reduces to strong normal form
+{-
+  EqAlpha         : Alpha equivalence
+  EqBeta          : Beta reduction
+  EqEta           : Eta reduction
+  EqDefn          : Definition unpacking
+  EqNormOrd       : Normal order beta reduction
+  EqAppOrd        : Applicative order beta reduction
+  EqNormOrdTrans  : Normal order beta reduction with alpha equivalence and definition unpacking
+  EqAppOrdTrans   : Applicative order beta reduction with alpha equivalence and definition unpacking
+  EqTrans         : Zero or more beta reductions with alpha equivalence and definition unpacking
+  EqUnBeta        : Backwards beta reduction
+  EqUnEta         : Backwards eta reduction
+  EqUnNormOrd     : Backwards normal order beta reduction
+  EqUnAppOrd      : Backwards applicative order beta reduction
+  EqUnTrans       : Backwards zero or more beta reductions with alpha equivalence and definition unpacking
+  EqUnNormOrdTrans: Backwards normal order beta reduction with alpha equivalence and definition unpacking
+  EqUnAppOrdTrans : Backwards applicative order beta reduction with alpha equivalence and definition unpacking
+-}
+data EqnOp
+  = EqAlpha | EqBeta | EqEta | EqDefn
+  | EqNormOrd | EqAppOrd | EqTrans
+  | EqNormOrdTrans | EqAppOrdTrans
+  | EqUnBeta | EqUnEta | EqUnNormOrd
+  | EqUnAppOrd | EqUnTrans
+  | EqUnNormOrdTrans | EqUnAppOrdTrans
   deriving (Eq, Show)
+
+-- Strong, weak, or head normal form check
+data NormCheck = Strong | Weak | Head deriving (Eq, Show)
+
+data Eqn a = Eqn EqnOp (Maybe NormCheck) a deriving (Eq, Show)
 
 data Bind a
   = Bind Id a
@@ -200,38 +198,7 @@ class Tagged t where
   tag :: t a -> a
 
 instance Tagged Eqn where
-  tag :: Eqn a -> a
-  tag (AlphEq x) = x
-  tag (AtaSEq x) = x
-  tag (AtaWEq x) = x
-  tag (AtaHEq x) = x
-  tag (BetaEq x) = x
-  tag (UnBeta x) = x
-  tag (BtaSEq x) = x
-  tag (BtaWEq x) = x
-  tag (BtaHEq x) = x
-  tag (ABtaEq x) = x
-  tag (UnABta x) = x
-  tag (NBtaEq x) = x
-  tag (UnNBta x) = x
-  tag (DefnEq x) = x
-  tag (DtaSEq x) = x
-  tag (DtaWEq x) = x
-  tag (DtaHEq x) = x
-  tag (EtaaEq x) = x
-  tag (UnEtaa x) = x
-  tag (EtaSEq x) = x
-  tag (EtaWEq x) = x
-  tag (EtaHEq x) = x
-  tag (TrnsEq x) = x
-  tag (UnTrEq x) = x
-  tag (TnsWEq x) = x
-  tag (TnsHEq x) = x
-  tag (ATrsEq x) = x
-  tag (UnATEq x) = x
-  tag (NTrsEq x) = x
-  tag (UnNTEq x) = x
-  tag (NormEq x) = x
+  tag (Eqn _ _ x) = x
 
 instance Tagged Bind where
   tag (Bind _   x) = x

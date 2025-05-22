@@ -172,39 +172,52 @@ step :: Parser SStep
 step = Step <$> eqn <*> expr
 
 eqn :: Parser SEqn
-eqn =  try (withSpan' (symbol "=a>" >> return AlphEq))
-   <|> try (withSpan' (symbol "=a:s>" >> return AtaSEq))
-   <|> try (withSpan' (symbol "=a:w>" >> return AtaWEq))
-   <|> try (withSpan' (symbol "=a:h>" >> return AtaHEq))
-   <|> try (withSpan' (symbol "=b>" >> return BetaEq))
-   <|> try (withSpan' (symbol "<b=" >> return UnBeta))
-   <|> try (withSpan' (symbol "=b:s>" >> return BtaSEq))
-   <|> try (withSpan' (symbol "=b:w>" >> return BtaWEq))
-   <|> try (withSpan' (symbol "=b:h>" >> return BtaHEq))
-   <|> try (withSpan' (symbol "=p>" >> return ABtaEq))
-   <|> try (withSpan' (symbol "<p=" >> return UnABta))
-   <|> try (withSpan' (symbol "=n>" >> return NBtaEq))
-   <|> try (withSpan' (symbol "<n=" >> return UnNBta))
-   <|> try (withSpan' (symbol "=e>" >> return EtaaEq))
-   <|> try (withSpan' (symbol "<e=" >> return UnEtaa))
-   <|> try (withSpan' (symbol "=e:s>" >> return EtaSEq))
-   <|> try (withSpan' (symbol "=e:w>" >> return EtaWEq))
-   <|> try (withSpan' (symbol "=e:h>" >> return EtaHEq))
-   <|> try (withSpan' (symbol "=d>" >> return DefnEq))
-   <|> try (withSpan' (symbol "=d:s>" >> return DtaSEq))
-   <|> try (withSpan' (symbol "=d:w>" >> return DtaWEq))
-   <|> try (withSpan' (symbol "=d:h>" >> return DtaHEq))
-   <|> try (withSpan' (symbol "=*>" >> return TrnsEq))
-   <|> try (withSpan' (symbol "<*=" >> return UnTrEq))
-   <|> try (withSpan' (symbol "=*:s>" >> return NormEq))
-   <|> try (withSpan' (symbol "=*:w>" >> return TnsWEq))
-   <|> try (withSpan' (symbol "=*:h>" >> return TnsHEq))
-   <|> try (withSpan' (symbol "=p*>" >> return ATrsEq))
-   <|> try (withSpan' (symbol "<p*=" >> return UnATEq))
-   <|> try (withSpan' (symbol "=n*>" >> return NTrsEq))
-   <|> try (withSpan' (symbol "<n*=" >> return UnNTEq))
-   <|> try (withSpan' (symbol "=n*:s>" >> return NormEq))
-   <|>      withSpan' (symbol "=~>" >> return NormEq)
+eqn = withSpan' parseEqn
+
+parseEqn :: Parser (SourceSpan -> Eqn SourceSpan)
+parseEqn = try parseUnEqn <|> parseRegEqn
+
+parseUnEqn :: Parser (SourceSpan -> Eqn SourceSpan)
+parseUnEqn = do
+  void $ char '<'
+  op <- choice
+    [ try (string "a*=") >> return EqUnAppOrd
+    , try (string "n*=") >> return EqUnNormOrdTrans
+    , try (string "p*=") >> return EqUnAppOrdTrans
+    , try (string "b=")  >> return EqUnBeta
+    , try (string "n=") >> return EqUnNormOrd
+    , try (string "p=") >> return EqUnAppOrd
+    , try (string "e=")  >> return EqUnEta
+    , try (string "*=")  >> return EqUnTrans
+    ]
+  return $ \sp -> Eqn op Nothing sp
+
+parseRegEqn :: Parser (SourceSpan -> Eqn SourceSpan)
+parseRegEqn = do
+  void $ char '='
+  op <- choice
+    [ try (string "n") >> return EqNormOrd
+    , try (string "p") >> return EqAppOrd
+    , try (string "a")  >> return EqAlpha
+    , try (string "b")  >> return EqBeta
+    , try (string "e")  >> return EqEta
+    , try (string "d")  >> return EqDefn
+    , try (string "*")  >> return EqTrans
+    , try (string "n*") >> return EqNormOrdTrans
+    , try (string "p*") >> return EqAppOrdTrans
+    ]
+  mChk <- optional parseNormCheck
+  void $ char '>'
+  return $ \sp -> Eqn op mChk sp
+
+parseNormCheck :: Parser NormCheck
+parseNormCheck = do
+  void $ char ':'
+  choice
+    [ char 's' >> return Strong
+    , char 'w' >> return Weak
+    , char 'h' >> return Head
+    ]
 
 expr :: Parser SExpr
 expr =  try lamExpr
