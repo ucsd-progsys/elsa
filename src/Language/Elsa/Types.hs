@@ -78,12 +78,14 @@ data Defn a
   = Defn !(Bind a) !(Expr a)
   deriving (Eq, Show)
 
+data EvalKind = Regular | Conf deriving (Eq, Show)
+
 data Eval a = Eval
-  { evName  :: !(Bind a)
+  { evKind  :: EvalKind
+  , evName  :: !(Bind a)
   , evRoot  :: !(Expr a)
   , evSteps :: [Step a]
-  }
-  deriving (Eq, Show)
+  } deriving (Eq, Show)
 
 data Step a
   = Step !(Eqn a) !(Expr a)

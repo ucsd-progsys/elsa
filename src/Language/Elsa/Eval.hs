@@ -67,12 +67,17 @@ type Env a      = M.HashMap Id (Expr a)
 --------------------------------------------------------------------------------
 eval :: Env a -> Eval a -> CheckM a (Result a)
 --------------------------------------------------------------------------------
-eval g (Eval n e steps) = go e steps
+eval g (Eval kind n e steps) = go e steps
   where
     go e []
-      | isNormal g e    = return (OK n)
-      | otherwise       = Left (errPartial n e)
-    go e (s:steps)      = step g n e s >>= (`go` steps)
+      | noCheck kind || isNormal g e = return (OK n)
+      | otherwise                    = Left (errPartial n e)
+    go e (s:steps)                   = step g n e s >>= (`go` steps)
+    -- Regular is just "eval", then there is always a strong normal form check
+    -- at the end
+    noCheck Regular = False
+    -- Similar to "Regular" but without a strong normal form check at the end
+    noCheck Conf    = True
 
 step :: Env a -> Bind a -> Expr a -> Step a -> CheckM a (Expr a)
 step g n e (Step k e')

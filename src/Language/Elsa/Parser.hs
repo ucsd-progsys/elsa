@@ -103,7 +103,7 @@ rWord w = snd <$> (withSpan (string w) <* notFollowedBy alphaNumChar <* sc)
 
 -- | list of reserved words
 keywords :: [Text]
-keywords = [ "let"  , "eval" ]
+keywords = [ "let"  , "eval"  , "conf" ]
 
 -- | `identifier` parses identifiers: lower-case alphabets followed by alphas or digits
 identifier :: Parser (String, SourceSpan)
@@ -161,12 +161,12 @@ defn = do
 
 eval :: Parser SEval
 eval = do
-  rWord "eval"
+  kind <- (rWord "eval" >> return Regular) <|> (rWord "conf" >> return Conf)
   name  <- binder
   colon
   root  <- expr
   steps <- many step
-  return $ Eval name root steps
+  return $ Eval kind name root steps
 
 step :: Parser SStep
 step = Step <$> eqn <*> expr
