@@ -181,14 +181,14 @@ parseUnEqn :: Parser (SourceSpan -> Eqn SourceSpan)
 parseUnEqn = do
   void $ char '<'
   op <- choice
-    [ try (string "a*=") >> return EqUnAppOrd
-    , try (string "n*=") >> return EqUnNormOrdTrans
-    , try (string "p*=") >> return EqUnAppOrdTrans
-    , try (string "b=")  >> return EqUnBeta
-    , try (string "n=") >> return EqUnNormOrd
-    , try (string "p=") >> return EqUnAppOrd
-    , try (string "e=")  >> return EqUnEta
-    , try (string "*=")  >> return EqUnTrans
+    [ try (symbol "a*=") >> return EqUnAppOrd
+    , try (symbol "n*=") >> return EqUnNormOrdTrans
+    , try (symbol "p*=") >> return EqUnAppOrdTrans
+    , try (symbol "b=")  >> return EqUnBeta
+    , try (symbol "n=") >> return EqUnNormOrd
+    , try (symbol "p=") >> return EqUnAppOrd
+    , try (symbol "e=")  >> return EqUnEta
+    , try (symbol "*=")  >> return EqUnTrans
     ]
   return $ \sp -> Eqn op Nothing sp
 
@@ -208,7 +208,7 @@ parseRegEqn = do
     , try (string "p*") >> return EqAppOrdTrans
     ]
   mChk <- optional parseNormCheck
-  void $ char '>'
+  void $ symbol ">"
   return $ \sp -> Eqn op mChk sp
 
 parseNormCheck :: Parser NormCheck
