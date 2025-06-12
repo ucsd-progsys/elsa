@@ -269,14 +269,14 @@ isUnABeta g e1 e2 = isABetaEq Nothing g e2 e1
 
 -- Use selected order evaluation strategy
 isSBetaEq :: (Expr a -> Maybe (Expr a)) -> Maybe NormCheck -> Env a -> Expr a -> Expr a -> Bool
-isSBetaEq step Nothing _ e1 e2 = step e1 == Just e2
-isSBetaEq step (Just Strong) g e1 e2 = case step e1 of
+isSBetaEq step Nothing g e1 e2 = step (subst e1 g) == Just (subst e2 g)
+isSBetaEq step (Just Strong) g e1 e2 = case step (subst e1 g) of
   Nothing -> False
   Just e1' -> isNormEq g e1' e2
-isSBetaEq step (Just Weak) g e1 e2 = case step e1 of
+isSBetaEq step (Just Weak) g e1 e2 = case step (subst e1 g) of
   Nothing -> False
   Just e1' -> isWnfEq g e1' e2
-isSBetaEq step (Just Head) g e1 e2 = case step e1 of
+isSBetaEq step (Just Head) g e1 e2 = case step (subst e1 g) of
   Nothing -> False
   Just e1' -> isHnfEq g e1' e2
 
