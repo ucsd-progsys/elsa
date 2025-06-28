@@ -1,0 +1,32 @@
+let id    = (\x -> x)
+let omega = (\y -> y y) (\y -> y y)
+let false = (\x y -> y)
+
+conf head_form_1 :
+  id M (false omega)
+  =d> (\x -> x) M (false omega)
+  =n:h> M (false omega)
+
+conf head_form_2 :
+  id M (false omega)
+  =d> (\x -> x) M (false omega)
+  =n:h> M (false omega)
+  =~> M id    -- Test manual strong normal form check
+  =d:s> M id -- Test manual strong normal form check
+
+eval head_form_3 :
+  id M (false omega)
+  =d> (\x -> x) M (false omega)
+  =n:h> M (false omega)
+  =n*:s> M id -- Test manual and automatic strong normal form check
+
+conf head_form_4 :
+  (\x y -> x y) M (false omega)
+  =n> (\y -> M y) (false omega)
+  =n:h> M (false omega)
+
+eval head_form_5 :
+  (\x y -> x y) M (id id)
+  =n> (\y -> M y) (id id)
+  =n:h> M (id id)
+  =~:h> M id -- If the previous reduction is in head normal form, so should any furhter reductions

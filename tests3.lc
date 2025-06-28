@@ -1,0 +1,20 @@
+let true = \x y -> x
+
+eval listlength0:
+  true d e
+  =*> d
+
+let dup = \x -> x x
+let omega = dup dup
+
+conf omega_dup:
+  omega
+  =d> (\x -> x x) (\x -> x x)
+
+eval test1:
+  true dup b
+  =~> \a -> a a
+
+eval test2:
+  c
+  =*> c

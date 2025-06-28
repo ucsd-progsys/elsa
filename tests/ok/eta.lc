@@ -1,0 +1,47 @@
+-----------------------------------Simple---------------------------------------
+eval simple_1 :
+  \x -> E x
+  =e> E
+
+eval simple_2 :
+  \x y -> E x y
+  =e> \x -> E x
+  =e> E
+
+eval simple_3 :
+  \a b x y -> (E (X a) (Z b) x y)
+  =e> \a b x -> (E (X a) (Z b) x)
+  =e> \a b -> (E (X a) (Z b))
+
+eval simple_4 :
+  \x -> (\y -> E y) x
+  =e> \x -> E x -- eta reducion inside lambda abstraction
+  =e> E
+
+eval simple_5 :
+  \x -> (\y -> E y) x
+  =e> \y -> E y
+  =e> E
+
+eval simple_6 :
+  \x y -> (\z -> E z) y x -- eta reducion inside deeper lambda abstraction
+  =e> \x y -> E y x
+
+----------------------------------Advanced--------------------------------------
+----------------Multiplication and Eta Reduction----------------
+let two   = \f x -> f (f x)
+let three = \f x -> f (f (f x))
+let six   = \f x -> f (f (f (f (f (f x)))))
+
+let mult = \m n f x -> m (n f) x
+
+eval two_times_three_eta :
+  mult two three
+  =d> (\m n f x -> m (n f) x) two three
+  =n*> (\f x -> two (three f) x)
+  =d> (\f x -> (\f x -> f (f x)) ((\f x -> f (f (f x))) f) x)
+  =p> (\f x -> (\f x -> f (f x)) (\x -> f (f (f x))) x)
+  =n> (\f x -> (\x -> (\x -> f (f (f x))) ((\x -> f (f (f x))) x)) x)
+  =p*> (\f x -> (\x -> f (f (f (f (f (f x)))))) x)
+  =e> (\f x -> f (f (f (f (f (f x)))))) -- Applicative order reduction and eta reduction lead to the same result here
+  =d> six
