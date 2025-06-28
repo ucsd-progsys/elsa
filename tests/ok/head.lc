@@ -29,4 +29,4 @@ eval head_form_5 :
   (\x y -> x y) M (id id)
   =n> (\y -> M y) (id id)
   =n:h> M (id id)
-  =~:h> M id -- If the previous reduction is in head normal form, so should any furhter reductions
+  =~:h> M id -- If the previous reduction is in head normal form, so should any further reductions

@@ -1,0 +1,26 @@
+-- Basic functions
+let id    = (\x -> x)
+let omega = (\y -> y y) (\y -> y y)
+let false = (\x y -> y)
+
+conf weak_bad_1 :
+  id M (false omega)
+  =d> (\x -> x) M (false omega)
+  =n:w> M (false omega) -- Should be in head normal form, not weak
+
+conf weak_bad_2 :
+  id M (false omega)
+  =d> (\x -> x) M (false omega)
+  =b:w> M (false omega) -- Should be in head normal form, not weak
+
+conf weak_bad_3 :
+  id M (false omega)
+  =d> (\x -> x) M (false omega)
+  =b> M (false omega)
+  =d:w> M (false omega) -- Should be in head normal form, not weak
+
+conf weak_bad_4 :
+  (\x y -> x y) M (id id)
+  =n> (\y -> M y) (id id)
+  =n> M (id id)
+  =a:w> M (id id) -- Should be in head normal form, not weak

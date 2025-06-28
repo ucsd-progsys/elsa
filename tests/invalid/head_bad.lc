@@ -1,0 +1,18 @@
+-- Basic logic functions
+let true  = \x y -> x
+let false = \x y -> y
+let id = \x -> x
+
+conf head_bad_1 :
+  (\x y -> id x) (id id)
+  =n*:h> \y -> id (id id) -- Should be in weak normal form, not head
+
+conf head_bad_2 :
+  (\x y -> false y x) (true id false)
+  =n*> (\y -> false y (true id false))
+  =a:h> (\a -> false a (true id false)) -- Should be in weak normal form, not head
+
+conf head_bad_3 :
+  (\x y -> false y x) (true id false)
+  =*> (\x y -> false y x) id
+  =b:h> \y -> false y id -- Should be in weak normal form, not head
