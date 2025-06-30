@@ -158,11 +158,14 @@ isSTrnsEq step g e1 e2 = Mb.isJust (findSTrans step (isEquiv g e2) (canon g e1))
 
 findSTrans :: (Expr a -> Maybe (Expr a)) -> (Expr a -> Bool) -> Expr a -> Maybe (Expr a)
 findSTrans step f e = do
-  e' <- step e
-  if f e' then
-    return e'
-  else
-    findSTrans step f e'
+  if f e then -- Maybe no reductions are needed
+    return e
+  else do -- One or more reductions are needed
+    e' <- step e
+    if f e' then
+      return e'
+    else
+      findSTrans step f e'
 
 -- isSTrnsEq with selected normal form check
 isSTrnsSEq :: (Expr a -> Maybe (Expr a)) -> (Env a -> Expr a -> Expr a -> Bool) -> Env a -> Expr a -> Expr a -> Bool
