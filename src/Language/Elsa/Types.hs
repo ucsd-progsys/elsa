@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Language.Elsa.Types where
 
@@ -11,15 +12,16 @@ import           Language.Elsa.UX
 import           Data.Maybe (mapMaybe)
 import           Data.Hashable
 
-type Id      = String
-type SElsa   = Elsa SourceSpan
-type SDefn   = Defn SourceSpan
-type SExpr   = Expr SourceSpan
-type SEval   = Eval SourceSpan
-type SStep   = Step SourceSpan
-type SBind   = Bind SourceSpan
-type SEqn    = Eqn  SourceSpan
-type SResult = Result SourceSpan
+type Id        = String
+type SElsaItem = ElsaItem SourceSpan
+type SElsa     = Elsa SourceSpan
+type SDefn     = Defn SourceSpan
+type SExpr     = Expr SourceSpan
+type SEval     = Eval SourceSpan
+type SStep     = Step SourceSpan
+type SBind     = Bind SourceSpan
+type SEqn      = Eqn  SourceSpan
+type SResult   = Result SourceSpan
 
 --------------------------------------------------------------------------------
 -- | Result
@@ -64,6 +66,8 @@ mkErr l msg = Just (mkError msg (sourceSpan l))
 --------------------------------------------------------------------------------
 -- | Programs
 --------------------------------------------------------------------------------
+data ElsaItem a = DefnItem (Defn a) | EvalItem (Eval a)
+
 data Elsa a = Elsa
   { defns :: [Defn a]
   , evals :: [Eval a]
@@ -74,26 +78,52 @@ data Defn a
   = Defn !(Bind a) !(Expr a)
   deriving (Eq, Show)
 
+data EvalKind = Regular | Conf deriving (Eq, Show)
+
 data Eval a = Eval
-  { evName  :: !(Bind a)
+  { evKind  :: EvalKind
+  , evName  :: !(Bind a)
   , evRoot  :: !(Expr a)
   , evSteps :: [Step a]
-  }
-  deriving (Eq, Show)
+  } deriving (Eq, Show)
 
 data Step a
   = Step !(Eqn a) !(Expr a)
   deriving (Eq, Show)
 
-data Eqn a
-  = AlphEq a
-  | BetaEq a
-  | UnBeta a
-  | DefnEq a
-  | TrnsEq a
-  | UnTrEq a
-  | NormEq a
+{-
+  EqAlpha         : Alpha equivalence
+  EqBeta          : Beta reduction
+  EqEta           : Eta reduction
+  EqDefn          : Definition unpacking
+  EqNormOrd       : Normal order beta reduction
+  EqAppOrd        : Applicative order beta reduction
+  EqNormOrdTrans  : Normal order beta reduction with alpha equivalence and definition unpacking
+  EqAppOrdTrans   : Applicative order beta reduction with alpha equivalence and definition unpacking
+  EqTrans         : Zero or more beta reductions with alpha equivalence and definition unpacking
+  EqNormTrans     : Acts the same as the "=n*:s>" operator, no matter the normal form check
+  EqUnBeta        : Backwards beta reduction
+  EqUnEta         : Backwards eta reduction
+  EqUnNormOrd     : Backwards normal order beta reduction
+  EqUnAppOrd      : Backwards applicative order beta reduction
+  EqUnTrans       : Backwards zero or more beta reductions with alpha equivalence and definition unpacking
+  EqUnNormOrdTrans: Backwards normal order beta reduction with alpha equivalence and definition unpacking
+  EqUnAppOrdTrans : Backwards applicative order beta reduction with alpha equivalence and definition unpacking
+-}
+data EqnOp
+  = EqAlpha | EqBeta | EqEta | EqDefn
+  | EqNormOrd | EqAppOrd | EqTrans
+  | EqNormOrdTrans | EqAppOrdTrans
+  | EqNormTrans
+  | EqUnBeta | EqUnEta | EqUnNormOrd
+  | EqUnAppOrd | EqUnTrans
+  | EqUnNormOrdTrans | EqUnAppOrdTrans
   deriving (Eq, Show)
+
+-- Strong, weak, or head normal form check
+data NormCheck = Strong | Weak | Head deriving (Eq, Show)
+
+data Eqn a = Eqn EqnOp (Maybe NormCheck) a deriving (Eq, Show)
 
 data Bind a
   = Bind Id a
@@ -172,13 +202,7 @@ class Tagged t where
   tag :: t a -> a
 
 instance Tagged Eqn where
-  tag (AlphEq x) = x
-  tag (BetaEq x) = x
-  tag (UnBeta x) = x
-  tag (DefnEq x) = x
-  tag (TrnsEq x) = x
-  tag (UnTrEq x) = x
-  tag (NormEq x) = x
+  tag (Eqn _ _ x) = x
 
 instance Tagged Bind where
   tag (Bind _   x) = x

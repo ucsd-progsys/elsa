@@ -1,0 +1,13 @@
+let true = \x y -> x
+
+conf zero_app_1 :
+  true (\x -> x)
+  =p*> true (\x -> x) -- No applicative order beta reductions are needed
+
+conf zero_app_2 :
+  true (\x -> x)
+  =n*> true (\x -> x) -- No normal order beta reductions are needed
+
+conf zero_app_3 :
+  true (\x -> x)
+  =*> true (\x -> x) -- No beta reductions are needed

@@ -103,7 +103,7 @@ rWord w = snd <$> (withSpan (string w) <* notFollowedBy alphaNumChar <* sc)
 
 -- | list of reserved words
 keywords :: [Text]
-keywords = [ "let"  , "eval" ]
+keywords = [ "let"  , "eval"  , "conf" ]
 
 -- | `identifier` parses identifiers: lower-case alphabets followed by alphas or digits
 identifier :: Parser (String, SourceSpan)
@@ -140,7 +140,17 @@ withSpan p = do
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 elsa :: Parser SElsa
-elsa = Elsa <$> many defn <*> many eval
+elsa = do
+  items <- many elsaItem
+  pure $
+    Elsa
+      { defns = [d | DefnItem d <- items],
+        evals = [e | EvalItem e <- items]
+      }
+
+elsaItem :: Parser SElsaItem
+elsaItem = 
+  (DefnItem <$> defn) <|> (EvalItem <$> eval)
 
 defn :: Parser SDefn
 defn = do
@@ -151,24 +161,63 @@ defn = do
 
 eval :: Parser SEval
 eval = do
-  rWord "eval"
+  kind <- (rWord "eval" >> return Regular) <|> (rWord "conf" >> return Conf)
   name  <- binder
   colon
   root  <- expr
   steps <- many step
-  return $ Eval name root steps
+  return $ Eval kind name root steps
 
 step :: Parser SStep
 step = Step <$> eqn <*> expr
 
 eqn :: Parser SEqn
-eqn =  try (withSpan' (symbol "=a>" >> return AlphEq))
-   <|> try (withSpan' (symbol "=b>" >> return BetaEq))
-   <|> try (withSpan' (symbol "<b=" >> return UnBeta))
-   <|> try (withSpan' (symbol "=d>" >> return DefnEq))
-   <|> try (withSpan' (symbol "=*>" >> return TrnsEq))
-   <|> try (withSpan' (symbol "<*=" >> return UnTrEq))
-   <|>     (withSpan' (symbol "=~>" >> return NormEq))
+eqn = withSpan' parseEqn
+
+parseEqn :: Parser (SourceSpan -> Eqn SourceSpan)
+parseEqn = try parseUnEqn <|> parseRegEqn
+
+parseUnEqn :: Parser (SourceSpan -> Eqn SourceSpan)
+parseUnEqn = do
+  void $ char '<'
+  op <- choice
+    [ try (symbol "n*=") >> return EqUnNormOrdTrans
+    , try (symbol "p*=") >> return EqUnAppOrdTrans
+    , try (symbol "b=")  >> return EqUnBeta
+    , try (symbol "n=") >> return EqUnNormOrd
+    , try (symbol "p=") >> return EqUnAppOrd
+    , try (symbol "e=")  >> return EqUnEta
+    , try (symbol "*=")  >> return EqUnTrans
+    ]
+  return $ \sp -> Eqn op Nothing sp
+
+parseRegEqn :: Parser (SourceSpan -> Eqn SourceSpan)
+parseRegEqn = do
+  void $ char '='
+  op <- choice
+    [ try (string "n*") >> return EqNormOrdTrans
+    , try (string "p*") >> return EqAppOrdTrans
+    , try (string "n") >> return EqNormOrd
+    , try (string "p") >> return EqAppOrd
+    , try (string "a")  >> return EqAlpha
+    , try (string "b")  >> return EqBeta
+    , try (string "e")  >> return EqEta
+    , try (string "d")  >> return EqDefn
+    , try (string "*")  >> return EqTrans
+    , try (string "~")  >> return EqNormTrans
+    ]
+  mChk <- optional parseNormCheck
+  void $ symbol ">"
+  return $ \sp -> Eqn op mChk sp
+
+parseNormCheck :: Parser NormCheck
+parseNormCheck = do
+  void $ char ':'
+  choice
+    [ char 's' >> return Strong
+    , char 'w' >> return Weak
+    , char 'h' >> return Head
+    ]
 
 expr :: Parser SExpr
 expr =  try lamExpr

@@ -1,0 +1,9 @@
+eval eta_bad_1 :
+  \x y a b -> (E (X a) (Z b) x y) -- x y should be the last arguments
+  =e> \x a b -> (E (X a) (Z b) x)
+  =e> \a b -> (E (X a) (Z b))
+
+eval eta_bad_2 :
+  \a x y b -> (E (X a) (Z b) x y) -- x y should be the last arguments
+  =e> \a x b -> (E (X a) (Z b) x)
+  =e> \a b -> (E (X a) (Z b))

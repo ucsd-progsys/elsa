@@ -1,0 +1,40 @@
+-----------------------------------Simple---------------------------------------
+-- Basic logic functions
+let true  = \x y -> x
+let false = \x y -> y
+let id = \x -> x
+
+conf simple_1 :
+  (\x y -> id x) (id id)
+  =n*:w> \y -> id (id id)
+
+conf simple_2 :
+  (\x y -> false y x) (true id false)
+  =n*:w> (\y -> false y (true id false))
+
+conf simple_3 :
+  (\x y -> false y x) (true id false)
+  =*> (\x y -> false y x) id
+  =b:w> \y -> false y id
+
+----------------------------------Fibonacci-------------------------------------
+-- Extra numbers for question a (some very long predefined numbers)
+let c13 = \f x -> f (f (f (f (f (f (f (f (f (f (f (f (f x))))))))))))
+let c21 = \f x -> f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f x))))))))))))))))))))
+let c34 = \f x -> f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f x)))))))))))))))))))))))))))))))))
+
+-- The only number operation we need
+let add = \m n f x -> m f (n f x)
+
+-- Our 'pair' constructor is compatible with the 'true' and 'false' functions
+let pair = \x y f -> f x y
+let fst  = true
+let snd  = false
+
+-- Fibonacci number generator
+let nextfib = \p -> pair (p snd) (add (p fst) (p snd))
+
+eval tenth_fibonacci :
+  nextfib (pair c13 c21)
+  =n*:w> \f -> f ((pair c13 c21) snd) (add ((pair c13 c21) fst) ((pair c13 c21) snd)) -- Weak normal form check
+  =~:w> \f -> f c21 c34 -- Any subsequent reduction after a weak normal form must also be in weak normal form
